@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdPulse Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="#">📊 TTMON Dashboard</a>
+        <span class="navbar-text">
+            Система моніторингу TikTok Ads
+        </span>
+    </div>
+</nav>
+
+<div class="container">
+    <h2 class="mb-4">Рекламні кампанії</h2>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Назва кампанії</th>
+                        <th>Статус</th>
+                        <th>Бюджет</th>
+                        <th>Витрачено</th>
+                        <th>CTR</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for campaign in campaigns %}
+                    <tr>
+                        <td class="fw-bold">{{ campaign.name }}</td>
+                        <td>
+                            {% if campaign.status == 'ACTIVE' %}
+                                <span class="badge bg-success">Активна</span>
+                            {% elif campaign.status == 'PAUSED' %}
+                                <span class="badge bg-warning text-dark">На паузі</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Завершена</span>
+                            {% endif %}
+                        </td>
+                        <td>${{ campaign.budget }}</td>
+                        <td>${{ campaign.spend }}</td>
+                        <td>
+                            <span class="text-primary fw-bold">{{ campaign.ctr }}%</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-3">Немає жодної кампанії. Створіть першу в адмін-панелі.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
