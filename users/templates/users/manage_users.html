@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Керування командою{% endblock %}
+
+{% block content %}
+<div class="row">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">➕ Новий користувач</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create_user">
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-success w-100">Створити акаунт</button>
+                </form>
+                <small class="text-muted d-block mt-3">* Пароль буде згенеровано автоматично і показано в таблиці праворуч.</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">👥 Команда</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Користувач</th>
+                            <th>Email</th>
+                            <th>Роль</th>
+                            <th>Прив'язка</th>
+                            <th>Статус пароля</th>
+                            <th>Дії</th> </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users_list %}
+                        <tr>
+                            <td class="fw-bold">{{ u.username }}</td>
+                            <td>{{ u.email }}</td>
+                            <td>
+                                {% if u.role == 'media_buyer' %}
+                                    <span class="badge bg-primary">Медіабайєр</span>
+                                {% elif u.role == 'creative' %}
+                                    <span class="badge bg-info text-dark">Креативник</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if u.supervisor %}
+                                    {{ u.supervisor.username }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if u.reset_requested %}
+                                    <span class="badge bg-danger mb-1 d-block">Запит на скидання</span>
+                                    <form method="POST" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="reset_password">
+                                        <input type="hidden" name="user_id" value="{{ u.id }}">
+                                        <button type="submit" class="btn btn-sm btn-warning w-100 fw-bold">🔄 Згенерувати</button>
+                                    </form>
+                                {% elif u.has_changed_password %}
+                                    <span class="badge bg-success">Змінено</span>
+                                {% else %}
+                                    <div class="input-group input-group-sm" style="width: 140px;">
+                                        <input type="password" class="form-control text-center fw-bold px-1" value="{{ u.temporary_password }}" id="pwd-{{ u.id }}" readonly>
+                                        <button class="btn btn-outline-secondary px-2" type="button" onclick="togglePwd('pwd-{{ u.id }}')" title="Показати/Сховати">👁️</button>
+                                        <button class="btn btn-outline-secondary px-2" type="button" onclick="copyPwd('pwd-{{ u.id }}')" title="Копіювати">📋</button>
+                                    </div>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <form method="POST" class="d-inline" onsubmit="return confirm('Ви дійсно хочете видалити користувача {{ u.username }}? Ця дія незворотна.');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_user">
+                                    <input type="hidden" name="user_id" value="{{ u.id }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Видалити">🗑️</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function togglePwd(id) {
+        let input = document.getElementById(id);
+        if (input.type === "password") {
+            input.type = "text";
+        } else {
+            input.type = "password";
+        }
+    }
+
+    function copyPwd(id) {
+        let input = document.getElementById(id);
+        navigator.clipboard.writeText(input.value).then(() => {
+            alert("Тимчасовий пароль скопійовано: " + input.value);
+        }).catch(err => {
+            console.error('Не вдалося скопіювати текст: ', err);
+        });
+    }
+</script>
+{% endblock %}

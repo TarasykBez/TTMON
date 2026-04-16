@@ -1,7 +1,8 @@
 from django.shortcuts import render
 from .models import Campaign
+from django.contrib.auth.decorators import login_required
 
-
+@login_required
 def dashboard(request):
     # Дістаємо всі кампанії з бази даних
     # Пізніше ми налаштуємо так, щоб кожен бачив лише СВОЇ кампанії

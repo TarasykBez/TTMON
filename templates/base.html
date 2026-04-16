@@ -19,14 +19,26 @@
                 <li class="nav-item">
                     <a class="nav-link {% if '/tasks/' in request.path %}active{% endif %}" href="/tasks/">Технічні завдання</a>
                 </li>
-            </ul>
-            <span class="navbar-text">
-                {% if user.is_authenticated %}
-                    Привіт, {{ user.username }}!
-                {% else %}
-                    Гість
+                {% if user.is_superuser %}
+                <li class="nav-item">
+                    <a class="nav-link text-warning {% if '/users/' in request.path %}active{% endif %}" href="{% url 'users:manage_users' %}">👑 Керування командою</a>
+                </li>
                 {% endif %}
-            </span>
+            </ul>
+
+            <div class="d-flex align-items-center">
+                {% if user.is_authenticated %}
+                    <span class="navbar-text me-3 text-white">
+                        Привіт, <strong>{{ user.username }}</strong>!
+                    </span>
+                    <form method="POST" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-light btn-sm">Вийти</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-outline-light btn-sm">Увійти</a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </nav>
