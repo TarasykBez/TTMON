@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mb-5 mt-3">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% url 'tasks:task_list' %}" class="btn btn-outline-secondary btn-sm shadow-sm" title="Повернутися до списку">
+                <i class="fa-solid fa-arrow-left"></i> Назад
+            </a>
+            <h3 class="mb-0 fw-bold text-dark">ТЗ #{{ task.id }}</h3>
+            <span class="badge fs-5 shadow-sm px-3 py-2 {% if task.status == 'COMPLETED' %}bg-success{% elif task.status == 'REVIEW' %}bg-warning text-dark{% else %}bg-primary{% endif %}">
+                {{ task.get_status_display }}
+            </span>
+        </div>
+
+        {% if task.author == request.user or request.user.is_superuser %}
+            <a href="{% url 'tasks:edit_task' task.id %}" class="btn btn-dark fw-bold shadow-sm">
+                ✏️ Редагувати ТЗ
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+
+            <div class="card shadow border-0 mb-4" style="border-radius: 15px; border-left: 6px solid #fe0979 !important; overflow: hidden;">
+                <div class="card-header bg-dark text-white p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-light text-dark fw-bold border fs-6 shadow-sm">ID: #{{ task.id }}</span>
+                        <span class="badge bg-warning text-dark fs-6 shadow-sm">{{ task.get_complexity_display }}</span>
+                    </div>
+                    <h3 class="fw-bold mb-3 text-white">{{ task.title }}</h3>
+
+                    <div class="d-flex flex-wrap gap-4 mt-3" style="font-size: 0.95rem;">
+                        <div class="bg-secondary bg-opacity-25 px-3 py-1 rounded">
+                            <span class="text-light">👤 Виконавець:</span>
+                            <span class="fw-bold text-info">{% if task.assignee %}{{ task.assignee.username }}{% else %}Не призначено{% endif %}</span>
+                        </div>
+                        <div class="bg-secondary bg-opacity-25 px-3 py-1 rounded">
+                            <span class="text-light">📝 Автор:</span>
+                            <span class="fw-bold text-white">{{ task.author.username }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body bg-white p-4">
+                    <div class="d-flex flex-wrap gap-4 border-bottom pb-3 mb-4 text-muted" style="font-size: 1rem;">
+                        <div class="border rounded px-2 py-1 bg-light">🌍 ГЕО: <strong class="text-dark">{{ task.geo }}</strong></div>
+                        <div class="border rounded px-2 py-1 bg-light">⏱️ Тривалість: <strong class="text-dark">{{ task.get_duration_display }}</strong></div>
+                        {% if task.deadline %}
+                            <div class="ms-auto text-danger border border-danger border-opacity-25 rounded px-2 py-1 bg-danger bg-opacity-10">
+                                ⏳ Дедлайн: <strong>{{ task.deadline|date:"d.m.Y" }}</strong>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    {% if task.hook %}
+                    <div class="mb-4 p-4 rounded shadow-sm border" style="background-color: #fff0f5; border-left: 5px solid #fe0979 !important;">
+                        <h5 class="text-danger fw-bold mb-2">🔥 Хук (0-3 сек):</h5>
+                        <p class="mb-0 text-dark fs-6" style="white-space: pre-wrap;">{{ task.hook }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if task.main_part %}
+                    <div class="mb-4 p-4 bg-light rounded shadow-sm border border-secondary border-opacity-25">
+                        <h5 class="fw-bold mb-2 text-dark">🎬 Основна частина:</h5>
+                        <p class="mb-0 text-dark fs-6" style="white-space: pre-wrap;">{{ task.main_part }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if task.cta %}
+                    <div class="mb-4 p-4 rounded shadow-sm border" style="background-color: #f0fdf4; border-left: 5px solid #198754 !important;">
+                        <h5 class="text-success fw-bold mb-2">✅ Заклик до дії (CTA):</h5>
+                        <p class="mb-0 fw-bold text-dark fs-6" style="white-space: pre-wrap;">{{ task.cta }}</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="row mt-4">
+                        {% if task.needs_voiceover %}
+                        <div class="col-md-6 mb-3">
+                            <div class="border rounded p-4 h-100 bg-white shadow-sm">
+                                <h5 class="text-primary fw-bold mb-3">🎙️ Озвучка:</h5>
+                                <div class="mb-3">
+                                    <span class="badge border border-secondary text-dark bg-light fs-6">{{ task.get_vo_language_display|default:"Мова не вказана" }}</span>
+                                    <span class="badge border border-secondary text-dark bg-light fs-6">{{ task.get_vo_voice_display|default:"Голос не вказаний" }}</span>
+                                </div>
+                                <p class="mb-0 fst-italic text-secondary" style="white-space: pre-wrap;">{{ task.voiceover_text }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if task.description %}
+                        <div class="col-md-{% if task.needs_voiceover %}6{% else %}12{% endif %} mb-3">
+                            <div class="border rounded p-4 h-100 bg-white shadow-sm">
+                                <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">📝 Загальний опис:</h5>
+                                <p class="text-secondary mb-0" style="white-space: pre-wrap;">{{ task.description }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div> <div class="accordion shadow-sm" id="accordionRefs">
+                <div class="accordion-item border-0 rounded-3 overflow-hidden">
+                    <h2 class="accordion-header" id="headingRefs">
+                        <button class="accordion-button collapsed fw-bold text-dark bg-light fs-5 py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRefs" aria-expanded="false" aria-controls="collapseRefs">
+                            <i class="fa-solid fa-folder-open text-secondary me-2"></i> Матеріали та Референси (від баєра)
+                        </button>
+                    </h2>
+                    <div id="collapseRefs" class="accordion-collapse collapse" aria-labelledby="headingRefs" data-bs-parent="#accordionRefs">
+                        <div class="accordion-body bg-white border-top p-4">
+                            {% if task.reference_links %}
+                            <div class="mb-4 border p-3 rounded bg-light">
+                                <h6 class="small text-uppercase fw-bold text-muted mb-2 border-bottom pb-2">Посилання:</h6>
+                                <div class="small text-break">
+                                    <script>
+                                        let links = `{{ task.reference_links|escapejs }}`.split('\n').filter(l => l.trim() !== '');
+                                        document.write(links.map(l => `<a href="${l}" target="_blank" class="d-block mb-2 text-primary fw-bold text-decoration-none"><i class="fa-solid fa-link"></i> ${l}</a>`).join(''));
+                                    </script>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if task.files.count > 0 %}
+                            <h6 class="small text-uppercase fw-bold text-muted mb-3 border-bottom pb-2">Прикріплені референси:</h6>
+                            <div class="row">
+                                {% for f in task.files.all %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="border border-secondary border-opacity-25 p-2 rounded bg-white shadow-sm text-center h-100 d-flex flex-column justify-content-between">
+                                            <div class="fw-bold small text-dark mb-2 px-2" title="{{ f.file.name }}">
+                                                {{ forloop.counter }}. {{ f.file.name|slice:"16:" }}
+                                            </div>
+                                            {% if ".mp4" in f.file.name|lower or ".mov" in f.file.name|lower or ".webm" in f.file.name|lower %}
+                                                <video src="{{ f.file.url }}" controls class="rounded w-100 mb-2" style="max-height: 200px; background: #000;"></video>
+                                            {% elif ".jpg" in f.file.name|lower or ".png" in f.file.name|lower or ".jpeg" in f.file.name|lower %}
+                                                <img src="{{ f.file.url }}" class="rounded w-100 mb-2" style="max-height: 200px; object-fit: contain;">
+                                            {% endif %}
+                                            <a href="{{ f.file.url }}" download class="btn btn-outline-dark w-100 mt-auto fw-bold"><i class="fa-solid fa-download"></i> Завантажити</a>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            {% if not task.reference_links and task.files.count == 0 %}
+                                <div class="alert alert-secondary text-center text-muted mb-0 fw-bold">Матеріалів не прикріплено.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="sticky-top" style="top: 20px; z-index: 1000;">
+
+                {% if task.buyer_feedback and task.status == 'IN_PROGRESS' %}
+                <div class="alert border-danger bg-white shadow border-2 mb-3 rounded-3 py-3">
+                    <h5 class="alert-heading text-danger fw-bold mb-2"><i class="fa-solid fa-triangle-exclamation"></i> Правки від баєра:</h5>
+                    <hr class="border-danger opacity-50">
+                    <p class="mb-0 text-dark fw-bold fs-6" style="white-space: pre-wrap;">{{ task.buyer_feedback }}</p>
+                </div>
+                {% endif %}
+
+                <div class="card shadow border-0 mb-4 rounded-3 overflow-hidden">
+                    <div class="card-header bg-dark text-white py-3">
+                        <h5 class="mb-0 fw-bold"><i class="fa-solid fa-sliders"></i> Пульт керування</h5>
+                    </div>
+                    <div class="card-body bg-white p-4">
+
+                        <div class="d-flex mb-4 border rounded p-1 bg-light" style="gap: 4px; height: 16px;">
+                            <div class="flex-fill rounded-start {% if task.status in 'DRAFT,SENT,IN_PROGRESS,REVIEW,COMPLETED' %}bg-secondary{% else %}bg-white{% endif %}"></div>
+                            <div class="flex-fill rounded {% if task.status in 'SENT,IN_PROGRESS,REVIEW,COMPLETED' %}bg-info{% else %}bg-white{% endif %}"></div>
+                            <div class="flex-fill rounded {% if task.status in 'IN_PROGRESS,REVIEW,COMPLETED' %}bg-primary{% else %}bg-white{% endif %}"></div>
+                            <div class="flex-fill rounded {% if task.status in 'REVIEW,COMPLETED' %}bg-warning{% else %}bg-white{% endif %}"></div>
+                            <div class="flex-fill rounded-end {% if task.status == 'COMPLETED' %}bg-success{% else %}bg-white{% endif %}"></div>
+                        </div>
+
+                        {% if task.status == 'IN_PROGRESS' and request.user == task.assignee %}
+                            <form method="POST" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="submit_result">
+                                <div class="mb-3 border border-success border-opacity-50 p-3 rounded bg-success bg-opacity-10">
+                                    <label class="form-label fw-bold text-success">📤 Завантажити готове відео</label>
+                                    <input type="file" name="result_files" class="form-control border-success shadow-sm" multiple required accept="video/*,image/*">
+                                </div>
+                                <div class="mb-3">
+                                    <textarea name="creative_comment" class="form-control shadow-sm" rows="3" placeholder="Коментар баєру (опційно)"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100 fw-bold py-2 fs-5 shadow-sm">Відправити на перевірку 🚀</button>
+                            </form>
+
+                        {% elif task.status == 'REVIEW' and request.user != task.assignee %}
+                            <form method="POST" id="reviewForm">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="review_result">
+
+                                <div class="mb-3 d-none border border-danger p-3 rounded bg-danger bg-opacity-10" id="feedbackField">
+                                    <label class="form-label text-danger fw-bold fs-6">Що потрібно виправити:</label>
+                                    <textarea name="buyer_feedback" id="feedbackInput" class="form-control border-danger shadow-sm" rows="4" placeholder="Наприклад: зміни шрифт у хуку..."></textarea>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="submit" name="decision" value="approve" class="btn btn-success w-50 fw-bold py-3 fs-6 shadow-sm" id="btnApprove">✅ Ухвалити</button>
+                                    <button type="button" class="btn btn-danger w-50 fw-bold py-3 fs-6 shadow-sm" id="btnReject">❌ Правки</button>
+                                </div>
+                                <button type="submit" name="decision" value="reject" class="btn btn-danger w-100 fw-bold mt-2 py-3 fs-6 shadow-sm d-none" id="btnConfirmReject">Відправити правки</button>
+                            </form>
+
+                            <script>
+                                document.getElementById('btnReject').addEventListener('click', function() {
+                                    document.getElementById('feedbackField').classList.remove('d-none');
+                                    document.getElementById('btnConfirmReject').classList.remove('d-none');
+                                    document.getElementById('btnApprove').classList.add('d-none');
+                                    this.classList.add('d-none');
+                                    document.getElementById('feedbackInput').required = true;
+                                });
+                            </script>
+
+                        {% else %}
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="change_status">
+                                <label class="form-label text-dark fw-bold">Змінити статус:</label>
+                                <select name="status" class="form-select border-primary shadow-sm mb-3 py-2 fw-bold">
+                                    {% for code, name in task.STATUS_CHOICES %}
+                                        <option value="{{ code }}" {% if task.status == code %}selected{% endif %}>{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">💾 Зберегти статус</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if task.result_files.count > 0 or task.creative_comment %}
+                <div class="accordion shadow" id="accordionResults">
+                    <div class="accordion-item border-0 rounded-3 overflow-hidden" style="border-top: 4px solid #198754 !important;">
+                        <h2 class="accordion-header" id="headingResults">
+                            <button class="accordion-button {% if task.status not in 'REVIEW,COMPLETED' %}collapsed{% endif %} fw-bold text-success bg-white fs-5 py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseResults" aria-expanded="{% if task.status in 'REVIEW,COMPLETED' %}true{% else %}false{% endif %}" aria-controls="collapseResults">
+                                <i class="fa-solid fa-list-check me-2"></i> Результати роботи
+                            </button>
+                        </h2>
+                        <div id="collapseResults" class="accordion-collapse collapse {% if task.status in 'REVIEW,COMPLETED' %}show{% endif %}" aria-labelledby="headingResults" data-bs-parent="#accordionResults">
+                            <div class="accordion-body bg-light border-top p-3">
+
+                                {% if task.creative_comment %}
+                                <div class="p-3 bg-white border border-success border-opacity-25 rounded mb-4 shadow-sm">
+                                    <span class="small fw-bold text-success border-bottom pb-1 mb-2 d-block">Коментар креативника:</span>
+                                    <p class="mb-0 fw-bold text-dark">{{ task.creative_comment }}</p>
+                                </div>
+                                {% endif %}
+
+                                {% if task.result_files.count > 0 %}
+                                    <h6 class="small text-uppercase fw-bold text-muted mb-3 border-bottom pb-2">Завантажені файли:</h6>
+                                    <div class="d-flex flex-column gap-3">
+                                    {% for f in task.result_files.all %}
+                                        <div class="border border-secondary border-opacity-25 p-2 rounded bg-white shadow-sm text-center">
+                                            {% if ".mp4" in f.file.name|lower or ".mov" in f.file.name|lower or ".webm" in f.file.name|lower %}
+                                                <video src="{{ f.file.url }}" controls class="w-100 rounded bg-dark mb-2" style="max-height: 250px;"></video>
+                                            {% else %}
+                                                <img src="{{ f.file.url }}" class="w-100 rounded mb-2" style="max-height: 250px; object-fit: contain;">
+                                            {% endif %}
+                                            <a href="{{ f.file.url }}" download class="btn btn-success w-100 fw-bold"><i class="fa-solid fa-download"></i> Завантажити</a>
+                                        </div>
+                                    {% endfor %}
+                                    </div>
+                                {% endif %}
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div> </div>
+    </div>
+</div>
+{% endblock %}

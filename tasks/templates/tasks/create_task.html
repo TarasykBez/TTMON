@@ -1,0 +1,393 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<div class="container-fluid mb-5">
+    <div class="row">
+        <div class="col-lg-6 col-md-12 border-end pe-lg-4 mb-4">
+            <h3 class="mb-4">{% if task %}✏️ Редагування ТЗ #{{ task.id }}{% else %}📝 Створення ТЗ{% endif %}</h3>
+
+            <form method="POST" id="taskForm" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="row bg-light p-3 rounded mb-3">
+                    <h6 class="text-muted text-uppercase mb-3">Базова інформація</h6>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-bold">Назва завдання</label>
+                        <input type="text" name="title" id="id_title" class="form-control" value="{{ task.title|default:'' }}" required>
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-bold">Виконавець (Креативник)</label>
+                        <select name="assignee" id="id_assignee" class="form-select border-primary">
+                            <option value="">-- Чернетка (без виконавця) --</option>
+                            {% for creative in creatives %}
+                                <option value="{{ creative.id }}" {% if task.assignee.id == creative.id %}selected{% endif %}>{{ creative.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Складність</label>
+                        <select name="complexity" id="id_complexity" class="form-select">
+                            {% for code, name in complexity_choices %}
+                                <option value="{{ code }}" {% if task.complexity == code or not task and code == 'MEDIUM' %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Тривалість</label>
+                        <select name="duration" id="id_duration" class="form-select">
+                            {% for code, name in duration_choices %}
+                                <option value="{{ code }}" {% if task.duration == code %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Дедлайн (Опційно)</label>
+                        <input type="date" name="deadline" id="id_deadline" class="form-control" value="{{ task.deadline|date:'Y-m-d' }}">
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-bold">ГЕО (Пошук)</label>
+                        <select name="geo" id="id_geo" class="form-select w-100">
+                            {% for code, name in geo_choices %}
+                                <option value="{{ code }}" {% if task.geo == code %}selected{% endif %}>{{ code }} - {{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row bg-light p-3 rounded mb-3">
+                    <h6 class="text-muted text-uppercase mb-3">Сценарій та Контент</h6>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-danger">Хук (0-3 сек)</label>
+                        <textarea name="hook" id="id_hook" class="form-control" rows="2">{{ task.hook|default:'' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Основна частина</label>
+                        <textarea name="main_part" id="id_main_part" class="form-control" rows="3">{{ task.main_part|default:'' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-success">CTA (Заклик до дії)</label>
+                        <textarea name="cta" id="id_cta" class="form-control" rows="2">{{ task.cta|default:'' }}</textarea>
+                    </div>
+
+                    <div class="border rounded p-3 bg-white mt-2">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="voToggle" name="needs_voiceover" {% if task.needs_voiceover %}checked{% endif %}>
+                            <label class="form-check-label fw-bold" for="voToggle">Додати озвучку до відео (VO)</label>
+                        </div>
+                        <div id="voBlock" class="{% if not task.needs_voiceover %}d-none{% endif %} mt-3">
+                            <div class="mb-2">
+                                <label class="form-label text-muted small">Текст озвучки</label>
+                                <textarea name="voiceover_text" id="id_voiceover_text" class="form-control" rows="2">{{ task.voiceover_text|default:'' }}</textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label class="form-label text-muted small">Мова</label>
+                                    <select name="vo_language" id="id_vo_language" class="form-select">
+                                        <option value="">-- Виберіть --</option>
+                                        {% for code, name in vo_language_choices %}
+                                            <option value="{{ code }}" {% if task.vo_language == code %}selected{% endif %}>{{ name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label text-muted small">Голос</label>
+                                    <select name="vo_voice" id="id_vo_voice" class="form-select">
+                                        <option value="">-- Виберіть --</option>
+                                        <option value="FEMALE" {% if task.vo_voice == 'FEMALE' %}selected{% endif %}>Жіночий</option>
+                                        <option value="MALE" {% if task.vo_voice == 'MALE' %}selected{% endif %}>Чоловічий</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row bg-light p-3 rounded mb-4">
+                    <h6 class="text-muted text-uppercase mb-3">Деталі та Референси</h6>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Загальний опис / Побажання</label>
+                        <textarea name="description" id="id_description" class="form-control" rows="2">{{ task.description|default:'' }}</textarea>
+                    </div>
+
+                    <div class="mb-3 border p-3 bg-white rounded">
+                        <label class="form-label fw-bold">Прикріпити медіа (Максимум 10)</label>
+
+                        <input type="file" id="dummyFileInput" class="form-control mb-3" multiple accept="image/*,video/*">
+                        <input type="file" name="reference_files" id="realFileInput" class="d-none" multiple>
+                        <input type="hidden" name="deleted_existing_files" id="deletedFilesInput" value="">
+
+                        <div>
+                            <span class="badge bg-secondary mb-2">Список доданих файлів:</span>
+                            <ul class="list-group list-group-sm" id="formFilesList">
+                                {% if task %}
+                                    {% for f in task.files.all %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center py-1" id="existing-file-li-{{ f.id }}">
+                                        <span class="text-truncate small" style="max-width: 80%;">📄 {{ f.file.name|slice:"16:" }}</span>
+                                        <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removeExistingFile({{ f.id }})">🗑️</button>
+                                    </li>
+                                    {% endfor %}
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Посилання на референси</label>
+                        <textarea name="reference_links" id="id_reference_links" class="form-control" rows="2" placeholder="Кожне посилання з нового рядка">{{ task.reference_links|default:'' }}</textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-dark w-100 py-3 fw-bold" style="background: linear-gradient(45deg, #fe0979, #00f2fe); border: none;">
+                    {% if task %}💾 Зберегти зміни{% else %}🚀 Створити ТЗ{% endif %}
+                </button>
+            </form>
+        </div>
+
+        <div class="col-lg-6 col-md-12 ps-lg-4 d-none d-md-block">
+            <div class="sticky-top" style="top: 20px;">
+                <h5 class="text-muted mb-3"><i class="fa-solid fa-eye"></i> Прев'ю картки ТЗ</h5>
+
+                <div class="card shadow-lg border-0" style="border-radius: 15px; border-left: 6px solid #fe0979 !important; overflow: hidden;">
+                    <div class="card-header bg-dark text-white p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-light text-dark fw-bold border">ID: {% if task %}#{{ task.id }}{% else %}#NEW{% endif %}</span>
+                            <span id="p-complexity" class="badge bg-warning text-dark">{{ task.get_complexity_display|default:"🟡 Середня" }}</span>
+                        </div>
+                        <h4 id="p-title" class="fw-bold mb-2">{{ task.title|default:"Назва з'явиться тут" }}</h4>
+
+                        <div class="d-flex flex-column" style="font-size: 0.9rem;">
+                            <div class="mb-1"><span class="text-secondary">👤 Виконавець:</span> <span id="p-assignee" class="fw-bold text-info">{% if task.assignee %}{{ task.assignee.username }}{% else %}Не призначено{% endif %}</span></div>
+                            <div id="p-deadline-block" class="{% if not task.deadline %}d-none{% endif %}"><span class="text-secondary">⏳ Дедлайн:</span> <strong id="p-deadline" class="text-danger">{% if task.deadline %}{{ task.deadline|date:"d.m.Y" }}{% endif %}</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="card-body bg-white p-4" style="max-height: 70vh; overflow-y: auto;">
+                        <div class="d-flex justify-content-start gap-3 border-bottom pb-3 mb-4" style="font-size: 0.95rem;">
+                            <div><strong>🌍 ГЕО:</strong> <span id="p-geo" class="badge bg-light text-dark border">{{ task.geo|default:'US' }}</span></div>
+                            <div><strong>⏱️ Час:</strong> <span id="p-duration" class="badge bg-light text-dark border">15-30 сек</span></div>
+                        </div>
+
+                        <div id="p-hook-block" class="mb-4 p-3 rounded shadow-sm {% if not task.hook %}d-none{% endif %}" style="background-color: #fff0f5; border-left: 4px solid #fe0979;">
+                            <h6 class="text-danger fw-bold mb-2">🔥 Хук (0-3 сек):</h6>
+                            <p id="p-hook" class="mb-0 fst-italic" style="white-space: pre-wrap;">{{ task.hook }}</p>
+                        </div>
+
+                        <div id="p-main_part-block" class="mb-4 p-3 bg-light rounded shadow-sm {% if not task.main_part %}d-none{% endif %}">
+                            <h6 class="fw-bold mb-2">🎬 Основна частина:</h6>
+                            <p id="p-main_part" class="mb-0" style="white-space: pre-wrap;">{{ task.main_part }}</p>
+                        </div>
+
+                        <div id="p-cta-block" class="mb-4 p-3 rounded shadow-sm {% if not task.cta %}d-none{% endif %}" style="background-color: #f0fdf4; border-left: 4px solid #198754;">
+                            <h6 class="text-success fw-bold mb-2">✅ Заклик до дії (CTA):</h6>
+                            <p id="p-cta" class="mb-0 fw-bold" style="white-space: pre-wrap;">{{ task.cta }}</p>
+                        </div>
+
+                        <div id="p-vo-block" class="mb-4 border rounded p-3 {% if not task.needs_voiceover %}d-none{% endif %}">
+                            <h6 class="text-primary fw-bold mb-2">🎙️ Озвучка:</h6>
+                            <div class="d-flex gap-2 mb-2 small">
+                                <span class="badge bg-secondary" id="p-vo_language">{{ task.get_vo_language_display|default:"Мова не вказана" }}</span>
+                                <span class="badge bg-secondary" id="p-vo_voice">{{ task.get_vo_voice_display|default:"Голос не вказаний" }}</span>
+                            </div>
+                            <p id="p-voiceover_text" class="mb-0 small fst-italic" style="white-space: pre-wrap;">{{ task.voiceover_text }}</p>
+                        </div>
+
+                        <div id="p-description-block" class="mb-4 {% if not task.description %}d-none{% endif %}">
+                            <h6 class="fw-bold text-muted border-bottom pb-1">📝 Загальний опис:</h6>
+                            <p id="p-description" class="small" style="white-space: pre-wrap;">{{ task.description }}</p>
+                        </div>
+
+                        <div id="p-reference_links-block" class="mb-4 {% if not task.reference_links %}d-none{% endif %}">
+                            <h6 class="fw-bold text-muted border-bottom pb-1">🔗 Референси:</h6>
+                            <div id="p-reference_links" class="small text-break">
+                                </div>
+                        </div>
+
+                        <div id="p-files-block" class="mb-2 {% if not task.files.count %}d-none{% endif %}">
+                            <h6 class="fw-bold text-muted border-bottom pb-2 mb-3">📁 Прикріплені медіа:</h6>
+                            <div id="p-media-list">
+                                {% if task %}
+                                    {% for f in task.files.all %}
+                                    <div class="mb-3 border p-2 rounded bg-light" id="p-existing-file-{{ f.id }}">
+                                        <div class="fw-bold small text-primary mb-1">Файл #{{ forloop.counter }}: {{ f.file.name|slice:"16:" }}</div>
+
+                                        {% if ".mp4" in f.file.name|lower or ".mov" in f.file.name|lower or ".webm" in f.file.name|lower %}
+                                            <video src="{{ f.file.url }}" controls class="rounded w-100" style="max-height: 250px; background: #000;"></video>
+                                        {% elif ".jpg" in f.file.name|lower or ".png" in f.file.name|lower or ".jpeg" in f.file.name|lower %}
+                                            <img src="{{ f.file.url }}" class="rounded w-100" style="max-height: 250px; object-fit: contain;">
+                                        {% else %}
+                                            <a href="{{ f.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary w-100">📄 Відкрити файл у браузері</a>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Логіка накопичення файлів (DataTransfer API) ---
+    let dataTransfer = new DataTransfer();
+    let existingFilesCount = {{ task.files.count|default:0 }};
+    const MAX_FILES = 10;
+
+    $('#dummyFileInput').on('change', function(e) {
+        for (let file of this.files) {
+            if (dataTransfer.items.length + existingFilesCount >= MAX_FILES) {
+                alert("Досягнуто ліміт: Максимум 10 файлів!");
+                break;
+            }
+            dataTransfer.items.add(file);
+        }
+        this.value = ""; // Очищаємо інпут, щоб можна було вибрати той самий файл ще раз
+        updateFilesUI();
+    });
+
+    function removeNewFile(index) {
+        let newDataTransfer = new DataTransfer();
+        for(let i = 0; i < dataTransfer.items.length; i++){
+            if(i !== index) newDataTransfer.items.add(dataTransfer.items[i].getAsFile());
+        }
+        dataTransfer = newDataTransfer;
+        updateFilesUI();
+    }
+
+    function removeExistingFile(fileId) {
+        let deletedInput = $('#deletedFilesInput');
+        deletedInput.val(deletedInput.val() + fileId + ',');
+
+        $('#existing-file-li-' + fileId).remove();
+        $('#p-existing-file-' + fileId).remove();
+
+        existingFilesCount--;
+        updateFilesUI();
+    }
+
+    function updateFilesUI() {
+        // Перекидаємо файли у справжній схований інпут для відправки форми
+        $('#realFileInput')[0].files = dataTransfer.files;
+
+        // Видаляємо старі DOM-елементи нових файлів
+        $('.new-file-item').remove();
+        $('.new-media-preview').remove();
+
+        let globalFileCounter = existingFilesCount + 1;
+
+        for(let i = 0; i < dataTransfer.files.length; i++) {
+            let file = dataTransfer.files[i];
+
+            // 1. Додаємо в лівий список
+            $('#formFilesList').append(`
+                <li class="list-group-item d-flex justify-content-between align-items-center py-1 new-file-item border-success">
+                    <span class="text-truncate small text-success" style="max-width: 80%;">➕ ${file.name}</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removeNewFile(${i})">🗑️</button>
+                </li>
+            `);
+
+            // 2. Додаємо медіаплеєр в правий список
+            let objUrl = URL.createObjectURL(file);
+            let mediaHtml = '';
+
+            if(file.type.startsWith('video/')) {
+                mediaHtml = `<video src="${objUrl}" controls class="rounded w-100" style="max-height: 250px; background: #000;"></video>`;
+            } else if(file.type.startsWith('image/')) {
+                mediaHtml = `<img src="${objUrl}" class="rounded w-100" style="max-height: 250px; object-fit: contain;">`;
+            } else {
+                mediaHtml = `<div class="p-3 text-center bg-white rounded border">📄 Документ (${file.name})</div>`;
+            }
+
+            $('#p-media-list').append(`
+                <div class="mb-3 border p-2 rounded bg-success bg-opacity-10 new-media-preview border-success">
+                    <div class="fw-bold small text-success mb-1">Файл #${globalFileCounter} (Новий): ${file.name}</div>
+                    ${mediaHtml}
+                </div>
+            `);
+            globalFileCounter++;
+        }
+
+        // Ховаємо/Показуємо блок файлів у прев'ю
+        if(dataTransfer.files.length > 0 || existingFilesCount > 0) {
+            $('#p-files-block').removeClass('d-none');
+        } else {
+            $('#p-files-block').addClass('d-none');
+        }
+    }
+
+    // --- Логіка прев'ю тексту та селектів ---
+    $(document).ready(function() {
+        $('#id_geo').select2({ placeholder: "Виберіть ГЕО (Пошук)", allowClear: true });
+
+        function toggleBlock(val, blockId) {
+            if(val && val.trim() !== '') { $(blockId).removeClass('d-none'); }
+            else { $(blockId).addClass('d-none'); }
+        }
+
+        const textFields = ['title', 'hook', 'main_part', 'cta', 'voiceover_text', 'description'];
+        textFields.forEach(f => {
+            $('#id_' + f).on('input', function() {
+                let val = $(this).val();
+                $('#p-' + f).text(val || "...");
+                if(f !== 'title') toggleBlock(val, '#p-' + f + '-block');
+            });
+        });
+
+        // Форматування посилань
+        function parseLinks() {
+            let text = $('#id_reference_links').val();
+            if(!text || text.trim() === '') {
+                $('#p-reference_links-block').addClass('d-none');
+                return;
+            }
+            let links = text.split('\n').filter(l => l.trim() !== '');
+            let html = links.map(l => `<a href="${l}" target="_blank" class="text-break d-block mb-1">${l}</a>`).join('');
+            $('#p-reference_links').html(html);
+            $('#p-reference_links-block').removeClass('d-none');
+        }
+        $('#id_reference_links').on('input', parseLinks);
+        parseLinks(); // Виклик при завантаженні (для режиму редагування)
+
+        // Селекти
+        $('#id_complexity, #id_duration, #id_vo_language, #id_vo_voice').change(function() {
+            let id = $(this).attr('id').replace('id_', 'p-');
+            $('#' + id).text($(this).find('option:selected').text());
+        });
+        $('#id_geo').change(function() { $('#p-geo').text($(this).val()); });
+        $('#id_assignee').change(function() {
+            let text = $(this).find('option:selected').text();
+            $('#p-assignee').text($(this).val() ? text : "Не призначено");
+        });
+
+        // Дедлайн
+        $('#id_deadline').on('input', function() {
+            let val = $(this).val();
+            if(val) {
+                let d = new Date(val);
+                $('#p-deadline').text(d.toLocaleDateString('uk-UA'));
+                $('#p-deadline-block').removeClass('d-none');
+            } else {
+                $('#p-deadline-block').addClass('d-none');
+            }
+        });
+
+        // Блок озвучки
+        $('#voToggle').change(function() {
+            if($(this).is(':checked')) {
+                $('#voBlock').removeClass('d-none');
+                $('#p-vo-block').removeClass('d-none');
+            } else {
+                $('#voBlock').addClass('d-none');
+                $('#p-vo-block').addClass('d-none');
+                $('#id_voiceover_text, #id_vo_language, #id_vo_voice').val('');
+            }
+        });
+    });
+</script>
+{% endblock %}
