@@ -5,18 +5,18 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>{% if is_admin %}Менеджмент TikTok Enterprise{% else %}Мої інтеграції{% endif %}</h2>
         {% if is_admin %}
-        <a href="{% url 'users:tiktok_login' %}" class="btn btn-primary">+ Підключити новий БЦ</a>
+        <a href="{% url 'users:tiktok_login' %}" class="btn btn-primary shadow-sm">+ Підключити новий БЦ</a>
         {% endif %}
     </div>
     <hr>
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white">
-            <h5 class="mb-0">{% if is_admin %}Активні Business Centers{% else %}Мій робочий статус{% endif %}</h5>
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h5 class="mb-0 fw-bold text-dark">{% if is_admin %}Активні Business Centers{% else %}Мій робочий статус{% endif %}</h5>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
             {% for integration in main_integrations %}
-            <div class="d-flex align-items-center {% if not forloop.last %}mb-3 pb-3 border-bottom{% endif %}">
+            <div class="d-flex align-items-center p-3 {% if not forloop.last %}border-bottom{% endif %}">
                 <div class="flex-shrink-0">
                     {% if integration.avatar_url %}
                         <img src="{{ integration.avatar_url }}" class="rounded-circle border" width="54" height="54">
@@ -27,7 +27,7 @@
                     {% endif %}
                 </div>
                 <div class="ms-3 flex-grow-1">
-                    <h5 class="mb-0"> {{ integration.display_name }} <span class="badge bg-success ms-2" style="font-size: 0.7rem;">Connected</span></h5>
+                    <h5 class="mb-0 fw-bold"> {{ integration.display_name }} <span class="badge bg-success ms-2" style="font-size: 0.7rem;">Connected</span></h5>
                     <p class="text-muted small mb-0">
                         {% if is_admin %}
                         ID: <code>{{ integration.open_id }}</code> | Оновлено: {{ integration.updated_at|date:"d.m.Y H:i" }}
@@ -36,27 +36,77 @@
                         {% endif %}
                     </p>
                 </div>
+
                 {% if is_admin %}
-                <div class="ms-auto">
+                <div class="ms-auto d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary px-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#accessModal{{ integration.id }}">
+                        <i class="fas fa-users-cog me-1"></i> Доступ
+                    </button>
+
                     <form action="{% url 'users:tiktok_disconnect' %}" method="POST" onsubmit="return confirm('Видалити цей БЦ та всі його кабінети?');">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-outline-danger">Відключити</button>
+                        <button type="submit" class="btn btn-sm btn-outline-danger px-3">Відключити</button>
                     </form>
+                </div>
+
+                <div class="modal fade" id="accessModal{{ integration.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <form action="{% url 'users:update_bc_access' integration.id %}" method="POST">
+                            {% csrf_token %}
+                            <div class="modal-content text-dark text-start">
+                                <div class="modal-header border-bottom-0">
+                                    <h5 class="modal-title fw-bold">Доступ до БЦ: {{ integration.display_name }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body pt-0">
+                                    <p class="small text-muted mb-3">Оберіть баєрів, які бачитимуть кабінети цього БЦ:</p>
+
+                                    <div class="input-group mb-3 shadow-sm">
+                                        <span class="input-group-text bg-white border-end-0">
+                                            <i class="fas fa-search text-muted"></i>
+                                        </span>
+                                        <input type="text" class="form-control border-start-0" id="buyerSearch{{ integration.id }}"
+                                               placeholder="Пошук за ім'ям або поштою..." onkeyup="filterBuyers({{ integration.id }})">
+                                    </div>
+
+                                    <div class="buyer-list-container border rounded" style="max-height: 350px; overflow-y: auto; overflow-x: hidden; background: #fdfdfd;">
+                                        {% for buyer in all_buyers %}
+                                            {% if buyer.role == 'media_buyer' %}
+                                            <div class="buyer-item-row" data-search="{{ buyer.username|lower }} {{ buyer.email|lower }}">
+                                                <input class="form-check-input" type="checkbox" name="buyer_ids"
+                                                       value="{{ buyer.id }}" id="bc{{ integration.id }}_u{{ buyer.id }}"
+                                                       {% if buyer in integration.allowed_buyers.all %}checked{% endif %}>
+
+                                                <label class="form-check-label d-flex flex-column w-100 m-0" for="bc{{ integration.id }}_u{{ buyer.id }}">
+                                                    <span class="fw-bold text-dark" style="line-height: 1.2;">{{ buyer.username }}</span>
+                                                    <span class="text-muted extra-small">{{ buyer.email }} | {{ buyer.team.name|default:"Без команди" }}</span>
+                                                </label>
+                                            </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="modal-footer border-top-0">
+                                    <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">Зберегти налаштування</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                 </div>
                 {% endif %}
             </div>
             {% empty %}
-            <p class="text-center text-muted my-3">Активних підключень до TikTok не знайдено.</p>
+            <p class="text-center text-muted my-5">Активних підключень до TikTok не знайдено.</p>
             {% endfor %}
         </div>
     </div>
 
-    <h5 class="mb-3">Ваші рекламні кабінети (Advertisers)</h5>
+    <h5 class="mb-3 fw-bold">Ваші рекламні кабінети (Advertisers)</h5>
 
     <div class="row">
         {% for account in assigned_accounts %}
         <div class="col-md-6 mb-4">
-            <div class="card border-start border-primary border-4 shadow-sm h-100">
+            <div class="card border-start border-primary border-4 shadow-sm h-100 border-top-0 border-end-0 border-bottom-0">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
@@ -64,12 +114,12 @@
                             <p class="text-muted small mb-2">ID: <code>{{ account.advertiser_id }}</code></p>
 
                             <div class="d-flex gap-2 align-items-center">
-                                <span class="badge {% if account.status == 'ENABLE' %}bg-success{% else %}bg-danger{% endif %}">
+                                <span class="badge {% if account.status == 'ENABLE' %}bg-success{% else %}bg-danger{% endif %} shadow-sm">
                                     {{ account.status }}
                                 </span>
                                 {% if is_admin %}
-                                <span class="badge bg-info text-dark">
-                                    <i class="fas fa-user me-1"></i> Баєр: {{ account.buyer.username|default:"НЕ ПРИЗНАЧЕНО" }}
+                                <span class="badge bg-light text-dark border">
+                                    <i class="fas fa-user me-1 text-primary"></i> Баєр: {{ account.buyer.username|default:"НЕ ПРИЗНАЧЕНО" }}
                                 </span>
                                 {% else %}
                                 <span class="text-muted small"><i class="fas fa-link me-1"></i> {{ account.main_integration.display_name }}</span>
@@ -79,13 +129,13 @@
 
                         <div>
                             {% if is_admin %}
-                            <button type="button" class="btn btn-sm btn-warning"
+                            <button type="button" class="btn btn-sm btn-warning shadow-sm"
                                     data-bs-toggle="modal"
                                     data-bs-target="#assignModal{{ account.id }}">
                                 <i class="fas fa-user-edit"></i>
                             </button>
                             {% else %}
-                            <a href="#" class="btn btn-sm btn-outline-primary">Статистика</a>
+                            <a href="#" class="btn btn-sm btn-outline-primary px-3 shadow-sm">Статистика</a>
                             {% endif %}
                         </div>
                     </div>
@@ -99,24 +149,27 @@
                 <form action="{% url 'users:assign_ad_account' %}" method="POST">
                     {% csrf_token %}
                     <input type="hidden" name="account_id" value="{{ account.id }}">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Призначити баєра</h5>
+                    <div class="modal-content text-dark">
+                        <div class="modal-header border-bottom-0">
+                            <h5 class="modal-title fw-bold">Призначити баєра на кабінет</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
-                        <div class="modal-body">
+                        <div class="modal-body text-start pt-0">
                             <p class="small text-muted">Кабінет: <strong>{{ account.advertiser_name }}</strong></p>
-                            <select name="buyer_id" class="form-select">
+                            <label class="form-label small fw-bold">Оберіть відповідального баєра:</label>
+                            <select name="buyer_id" class="form-select shadow-sm">
                                 <option value="">--- Відв'язати баєра ---</option>
                                 {% for buyer in all_buyers %}
-                                <option value="{{ buyer.id }}" {% if account.buyer == buyer %}selected{% endif %}>
-                                    {{ buyer.username }}
-                                </option>
+                                    {% if buyer.role == 'media_buyer' %}
+                                    <option value="{{ buyer.id }}" {% if account.buyer == buyer %}selected{% endif %}>
+                                        {{ buyer.username }}
+                                    </option>
+                                    {% endif %}
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="modal-footer">
-                            <button type="submit" class="btn btn-primary w-100">Зберегти</button>
+                        <div class="modal-footer border-top-0">
+                            <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">Зберегти</button>
                         </div>
                     </div>
                 </form>
@@ -126,15 +179,70 @@
 
         {% empty %}
         <div class="col-12">
-            <div class="alert alert-light border text-center py-4">
+            <div class="alert alert-light border text-center py-5 shadow-sm bg-white">
+                <i class="fas fa-cloud-download-alt fa-2x text-muted mb-3 d-block"></i>
                 {% if is_admin %}
-                Додайте Business Center для імпорту кабінетів.
+                Додайте Business Center для автоматичного імпорту рекламних кабінетів.
                 {% else %}
-                У вас ще немає призначених рекламних кабінетів.
+                У вас ще немає призначених рекламних кабінетів. Зверніться до адміністратора.
                 {% endif %}
             </div>
         </div>
         {% endfor %}
     </div>
 </div>
+
+<style>
+    .buyer-list-container {
+        overflow-x: hidden;
+    }
+    .buyer-item-row {
+        transition: background 0.2s;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        padding: 10px 15px !important;
+    }
+    .buyer-item-row:hover {
+        background-color: #f8fbff;
+    }
+    .buyer-item-row:last-child {
+        border-bottom: none !important;
+    }
+    .buyer-item-row .form-check-input {
+        width: 1.25em;
+        height: 1.25em;
+        margin-top: 0;
+        margin-right: 15px;
+        flex-shrink: 0;
+        cursor: pointer;
+        border: 2px solid #dee2e6;
+    }
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    .extra-small {
+        font-size: 0.75rem;
+    }
+</style>
+
+<script>
+function filterBuyers(bcId) {
+    const input = document.getElementById('buyerSearch' + bcId);
+    const filter = input.value.toLowerCase();
+    const modal = document.getElementById('accessModal' + bcId);
+    const rows = modal.querySelectorAll('.buyer-item-row');
+
+    rows.forEach(row => {
+        const text = row.getAttribute('data-search');
+        if (text.includes(filter)) {
+            row.style.setProperty('display', 'flex', 'important');
+        } else {
+            row.style.setProperty('display', 'none', 'important');
+        }
+    });
+}
+</script>
 {% endblock %}

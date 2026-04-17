@@ -11,21 +11,28 @@ from .models import Task, TaskFile, TaskResultFile
 def task_list(request):
     user = request.user
 
-    # ЛОГІКА ДОСТУПУ
+    # ЛОГІКА ДОСТУПУ (Оновлено під нову структуру)
     if user.is_superuser:
-        # 1. Адмін бачить АБСОЛЮТНО ВСІ завдання
+        # 1. Адмін бачить все
         tasks = Task.objects.all()
     elif user.role == 'media_buyer':
-        # 2. Баєр бачить свої
+        # 2. Баєр бачить свої створені завдання
         tasks = Task.objects.filter(author=user)
     else:
-        # 3. Креативник бачить ТЗ свого супервізора (баєра) або ті, де він виконавець
-        tasks = Task.objects.filter(models.Q(author=user.supervisor) | models.Q(assignee=user))
+        # 3. Креативник бачить:
+        # - ТЗ, де він вказаний як виконавець (assignee)
+        # - ТЗ від баєрів, до яких він прив'язаний (assigned_buyers)
+        # - Або просто ТЗ своєї команди (для гнучкості)
+        tasks = Task.objects.filter(
+            models.Q(assignee=user) |
+            models.Q(author__in=user.assigned_buyers.all()) |
+            models.Q(author__team=user.team)
+        ).distinct()
 
     return render(request, 'tasks/task_list.html', {'tasks': tasks})
 
 
-# Спільна функція для збереження даних (Create / Edit)
+# Спільна функція для збереження даних
 def _save_task_data(request, task=None):
     title = request.POST.get('title')
     deadline = request.POST.get('deadline')
@@ -72,13 +79,13 @@ def _save_task_data(request, task=None):
 
     task.save()
 
-    # 1. Видалення існуючих файлів, які баєр видалив з форми
+    # Видалення файлів
     deleted_files_str = request.POST.get('deleted_existing_files', '')
     if deleted_files_str and task.id:
         deleted_ids = [int(i) for i in deleted_files_str.split(',') if i.isdigit()]
         TaskFile.objects.filter(id__in=deleted_ids, task=task).delete()
 
-    # 2. Обробка нових доданих файлів (ліміт: 10 в сумі)
+    # Нові файли
     files = request.FILES.getlist('reference_files')
     current_files_count = task.files.count() if task.id else 0
     allowed_new_files = 10 - current_files_count
@@ -99,7 +106,8 @@ def create_task(request):
         messages.success(request, f"ТЗ '{task.title}' успішно створено!")
         return redirect('tasks:task_list')
 
-    creatives = CustomUser.objects.filter(role='creative', supervisor=request.user)
+    # Тепер баєр бачить тільки тих креативників, які до нього ПРИВ'ЯЗАНІ
+    creatives = request.user.assigned_creatives.all()
 
     return render(request, 'tasks/create_task.html', {
         'creatives': creatives,
@@ -121,7 +129,8 @@ def edit_task(request, pk):
         messages.success(request, "ТЗ успішно оновлено!")
         return redirect('tasks:task_list')
 
-    creatives = CustomUser.objects.filter(role='creative', supervisor=request.user)
+    # Фільтрація креативників за ManyToMany зв'язком баєра
+    creatives = request.user.assigned_creatives.all()
 
     return render(request, 'tasks/create_task.html', {
         'task': task,
@@ -145,16 +154,28 @@ def delete_task(request, pk):
 @login_required
 def task_detail(request, pk):
     task = get_object_or_404(Task, pk=pk)
+    user = request.user
 
-    # Перевірка доступу
-    if task.author != request.user and task.assignee != request.user and task.author != request.user.supervisor and not request.user.is_superuser:
+    # Перевірка доступу (Оновлено під нову структуру)
+    is_assigned = task.assignee == user
+    is_author_assigned_buyer = user in task.author.assigned_creatives.all()
+    is_team_member = task.author.team == user.team and user.role == 'creative'
+
+    can_access = (
+            task.author == user or
+            is_assigned or
+            is_author_assigned_buyer or
+            is_team_member or
+            user.is_superuser
+    )
+
+    if not can_access:
         messages.error(request, "У вас немає доступу до цього завдання.")
         return redirect('tasks:task_list')
 
     if request.method == 'POST':
         action = request.POST.get('action')
 
-        # 1. КРЕАТИВНИК ЗДАЄ РОБОТУ
         if action == 'submit_result':
             task.creative_comment = request.POST.get('creative_comment')
             task.status = 'REVIEW'
@@ -163,29 +184,26 @@ def task_detail(request, pk):
             files = request.FILES.getlist('result_files')
             for f in files:
                 TaskResultFile.objects.create(task=task, file=f)
-            messages.success(request, "Результат успішно відправлено на перевірку баєру!")
+            messages.success(request, "Результат успішно відправлено!")
 
-        # 2. БАЄР ПЕРЕВІРЯЄ РОБОТУ
         elif action == 'review_result':
             decision = request.POST.get('decision')
             if decision == 'approve':
                 task.status = 'COMPLETED'
-                task.buyer_feedback = ''  # Очищаємо правки, якщо все ок
                 task.save()
-                messages.success(request, "ТЗ успішно прийнято! Воно переведено в статус 'Готово'.")
+                messages.success(request, "ТЗ прийнято!")
             elif decision == 'reject':
                 task.status = 'IN_PROGRESS'
                 task.buyer_feedback = request.POST.get('buyer_feedback')
                 task.save()
-                messages.warning(request, "ТЗ повернуто на доопрацювання з правками.")
+                messages.warning(request, "ТЗ повернуто на доопрацювання.")
 
-        # 3. ПРОСТА ЗМІНА СТАТУСУ (вручну)
         elif action == 'change_status':
             new_status = request.POST.get('status')
             if new_status in dict(Task.STATUS_CHOICES).keys():
                 task.status = new_status
                 task.save()
-                messages.success(request, f"Статус змінено на '{task.get_status_display()}'")
+                messages.success(request, f"Статус змінено")
 
         return redirect('tasks:task_detail', pk=task.id)
 

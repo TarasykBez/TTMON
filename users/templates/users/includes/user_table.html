@@ -1,0 +1,142 @@
+<div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+        <thead class="bg-light text-muted small text-uppercase">
+            <tr>
+                <th class="ps-4">Користувач</th>
+                <th>Роль / Зв'язки</th>
+                <th>Безпека</th>
+                <th class="text-end pe-4">Дії</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in team_users %}
+            <tr>
+                <td class="ps-4">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-sm me-3 bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                            <i class="fas fa-user text-secondary"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold">{{ u.username }}</div>
+                            <div class="text-muted small">{{ u.email }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    {% if u.is_team_lead %}<span class="badge bg-warning text-dark mb-1">TEAM LEAD</span><br>{% endif %}
+                    <span class="badge {% if u.role == 'media_buyer' %}bg-primary{% else %}bg-info text-dark{% endif %}">
+                        {{ u.get_role_display }}
+                    </span>
+                    <div class="mt-1 small">
+                        {% if u.role == 'media_buyer' %}
+                            <span class="text-muted">Креативники:</span>
+                            {% for cr in u.assigned_creatives.all %}
+                                <span class="badge bg-light text-dark border">{{ cr.username }}</span>
+                            {% empty %}
+                                <span class="text-muted">—</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">Баєри:</span>
+                            {% for by in u.assigned_buyers.all %}
+                                <span class="badge bg-light text-dark border">{{ by.username }}</span>
+                            {% empty %}
+                                <span class="text-muted">—</span>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    {% if u.has_changed_password %}
+                        <span class="text-success small"><i class="fas fa-check-circle"></i> Змінено</span>
+                    {% elif u.temporary_password %}
+                        <div class="input-group input-group-sm" style="max-width: 140px;">
+                            <input type="password" class="form-control border-end-0 bg-light px-2" value="{{ u.temporary_password }}" id="pwd-{{ u.id }}" readonly>
+                            <button class="btn btn-outline-secondary border-start-0 px-2" type="button" onclick="togglePassword({{ u.id }})"><i class="fas fa-eye" id="eye-{{ u.id }}"></i></button>
+                            <button class="btn btn-outline-primary px-2" type="button" onclick="copyPassword('{{ u.temporary_password }}')"><i class="fas fa-copy"></i></button>
+                        </div>
+                    {% else %}
+                        <span class="badge bg-light text-dark border">Новий</span>
+                    {% endif %}
+                </td>
+                <td class="text-end pe-4">
+                    <button class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editUserModal{{ u.id }}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+
+                    <form method="POST" class="d-inline" onsubmit="return confirm('Видалити користувача?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete_user">
+                        <input type="hidden" name="user_id" value="{{ u.id }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+
+            <div class="modal fade" id="editUserModal{{ u.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <form method="POST" action="{% url 'users:edit_user' u.id %}">
+                        {% csrf_token %}
+                        <div class="modal-content text-start">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Редагування: {{ u.username }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Username</label>
+                                    <input type="text" name="username" value="{{ u.username }}" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" name="email" value="{{ u.email }}" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Роль</label>
+                                    <select name="role" class="form-select">
+                                        <option value="media_buyer" {% if u.role == 'media_buyer' %}selected{% endif %}>Медіабайєр</option>
+                                        <option value="creative" {% if u.role == 'creative' %}selected{% endif %}>Креативник</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Команда</label>
+                                    <select name="team" class="form-select">
+                                        <option value="">--- Без команди ---</option>
+                                        {% for t in teams %}
+                                        <option value="{{ t.id }}" {% if u.team == t %}selected{% endif %}>{{ t.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+      {% if u.role == 'media_buyer' %}
+<div class="mb-3">
+    <label class="form-label fw-bold small text-primary">Керування креативниками</label>
+    <select name="assigned_creatives" class="form-select shadow-sm" multiple size="5">
+        {% for member in u.team.members.all %}
+            {% if member.role == 'creative' %}
+                <option value="{{ member.id }}" {% if member in u.assigned_creatives.all %}selected{% endif %}>
+                    {{ member.username }}
+                </option>
+            {% endif %}
+        {% endfor %}
+    </select>
+    <div class="form-text small">
+        <i class="fas fa-info-circle me-1"></i> Щоб відв'язати, затисніть <b>Ctrl</b> та зніміть виділення з імені.
+    </div>
+</div>
+{% endif %}
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" name="is_team_lead" id="tl{{ u.id }}" {% if u.is_team_lead %}checked{% endif %}>
+                                    <label class="form-check-label" for="tl{{ u.id }}">Статус Тімліда</label>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
+                                <button type="submit" class="btn btn-primary">Зберегти зміни</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -1,125 +1,221 @@
 {% extends 'base.html' %}
-
-{% block title %}Керування командою{% endblock %}
+{% block title %}Команда TTMON{% endblock %}
 
 {% block content %}
-<div class="row">
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="mb-0"><i class="fas fa-user-plus me-2"></i>Новий учасник</h5>
             </div>
-        {% endfor %}
-    {% endif %}
-
-    <div class="col-md-4 mb-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-dark text-white">
-                <h5 class="mb-0">➕ Новий користувач</h5>
-            </div>
-            <div class="card-body">
+            <div class="card-body p-4 bg-white">
                 <form method="POST">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="create_user">
-                    {{ form.as_p }}
-                    <button type="submit" class="btn btn-success w-100">Створити акаунт</button>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Username</label>
+                        {{ form.username }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Email address</label>
+                        {{ form.email }}
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-7">
+                            <label class="form-label fw-semibold small">Роль</label>
+                            {{ form.role }}
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold small">Команда</label>
+                            {{ form.team }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="creatives_container" style="display: none;">
+                        <label class="form-label fw-semibold small text-primary">Призначити креативників (цієї команди)</label>
+                        {{ form.assigned_creatives }}
+                        <div class="form-text small">Затисніть Ctrl для вибору кількох.</div>
+                    </div>
+
+                    <div class="form-check form-switch mb-4">
+                        {{ form.is_team_lead }}
+                        <label class="form-check-label fw-bold text-primary">Статус Тімліда</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">
+                        Створити акаунт <i class="fas fa-chevron-right ms-1"></i>
+                    </button>
                 </form>
-                <small class="text-muted d-block mt-3">* Пароль буде згенеровано автоматично і показано в таблиці праворуч.</small>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <button class="btn btn-outline-primary w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#createTeamModal">
+                    <i class="fas fa-users-plus me-2"></i>Створити нову команду
+                </button>
             </div>
         </div>
     </div>
 
-    <div class="col-md-8">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">👥 Команда</h5>
+    <div class="col-lg-8">
+        {% for team in teams %}
+        <div class="card shadow-sm mb-5 border-0">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 border-bottom">
+                <h5 class="mb-0 fw-bold text-primary">Команда: {{ team.name }}</h5>
+                <div>
+                    <span class="badge bg-light text-dark border me-2">
+                        Тімлід: {% if team.leader %}{{ team.leader.username }}{% else %}Не призначено{% endif %}
+                    </span>
+                    <button class="btn btn-sm btn-link text-decoration-none p-0" data-bs-toggle="modal" data-bs-target="#editTeam{{ team.id }}">
+                        <i class="fas fa-cog"></i> Налаштувати
+                    </button>
+                </div>
             </div>
-            <div class="card-body">
-                <table class="table table-hover align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Користувач</th>
-                            <th>Email</th>
-                            <th>Роль</th>
-                            <th>Прив'язка</th>
-                            <th>Статус пароля</th>
-                            <th>Дії</th> </tr>
-                    </thead>
-                    <tbody>
-                        {% for u in users_list %}
-                        <tr>
-                            <td class="fw-bold">{{ u.username }}</td>
-                            <td>{{ u.email }}</td>
-                            <td>
-                                {% if u.role == 'media_buyer' %}
-                                    <span class="badge bg-primary">Медіабайєр</span>
-                                {% elif u.role == 'creative' %}
-                                    <span class="badge bg-info text-dark">Креативник</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if u.supervisor %}
-                                    {{ u.supervisor.username }}
-                                {% else %}
-                                    <span class="text-muted">—</span>
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                {% if u.reset_requested %}
-                                    <span class="badge bg-danger mb-1 d-block">Запит на скидання</span>
-                                    <form method="POST" class="d-inline">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="action" value="reset_password">
-                                        <input type="hidden" name="user_id" value="{{ u.id }}">
-                                        <button type="submit" class="btn btn-sm btn-warning w-100 fw-bold">🔄 Згенерувати</button>
-                                    </form>
-                                {% elif u.has_changed_password %}
-                                    <span class="badge bg-success">Змінено</span>
-                                {% else %}
-                                    <div class="input-group input-group-sm" style="width: 140px;">
-                                        <input type="password" class="form-control text-center fw-bold px-1" value="{{ u.temporary_password }}" id="pwd-{{ u.id }}" readonly>
-                                        <button class="btn btn-outline-secondary px-2" type="button" onclick="togglePwd('pwd-{{ u.id }}')" title="Показати/Сховати">👁️</button>
-                                        <button class="btn btn-outline-secondary px-2" type="button" onclick="copyPwd('pwd-{{ u.id }}')" title="Копіювати">📋</button>
-                                    </div>
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                <form method="POST" class="d-inline" onsubmit="return confirm('Ви дійсно хочете видалити користувача {{ u.username }}? Ця дія незворотна.');">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="delete_user">
-                                    <input type="hidden" name="user_id" value="{{ u.id }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Видалити">🗑️</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="card-body p-0">
+                {% include "users/includes/user_table.html" with team_users=team.members.all %}
             </div>
         </div>
+
+        <div class="modal fade" id="editTeam{{ team.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <form method="POST" action="{% url 'users:manage_teams' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="edit_team">
+                    <input type="hidden" name="team_id" value="{{ team.id }}">
+                    <div class="modal-content text-start">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Налаштування команди: {{ team.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Назва команди</label>
+                                <input type="text" name="team_name" value="{{ team.name }}" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
+                            <button type="submit" class="btn btn-primary px-4">Зберегти</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% empty %}
+        <div class="alert alert-info shadow-sm border-0">
+            <i class="fas fa-info-circle me-2"></i> Створіть першу команду, щоб почати додавати учасників.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="modal fade" id="createTeamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" action="{% url 'users:manage_teams' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_team">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Створити нову команду</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-start">
+                    <label class="form-label small fw-bold">Назва команди</label>
+                    <input type="text" name="team_name" placeholder="Наприклад: EUR_AFF" class="form-control shadow-sm" required>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
+                    <button type="submit" class="btn btn-primary px-4 shadow-sm">Створити</button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
 <script>
-    function togglePwd(id) {
-        let input = document.getElementById(id);
-        if (input.type === "password") {
-            input.type = "text";
+// 1. Функціонал для прихованих паролів у таблиці
+function togglePassword(userId) {
+    const input = document.getElementById('pwd-' + userId);
+    const eye = document.getElementById('eye-' + userId);
+    if (input.type === "password") {
+        input.type = "text";
+        eye.classList.remove('fa-eye');
+        eye.classList.add('fa-eye-slash');
+    } else {
+        input.type = "password";
+        eye.classList.remove('fa-eye-slash');
+        eye.classList.add('fa-eye');
+    }
+}
+
+function copyPassword(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert("Тимчасовий пароль скопійовано!");
+    }).catch(err => {
+        console.error('Не вдалося скопіювати: ', err);
+    });
+}
+
+// 2. Динамічна фільтрація креативників залежно від команди
+document.addEventListener('DOMContentLoaded', function() {
+    const teamSelect = document.getElementById('id_team_select');
+    const roleSelect = document.getElementById('id_role_select');
+    const creativeSelect = document.getElementById('id_creatives_select');
+    const creativeContainer = document.getElementById('creatives_container');
+
+    // Словник: ID команди -> масив креативників [ {id, name}, ... ]
+    // Генерується автоматично через Django шаблонізатор
+    const teamCreatives = {
+        {% for team in teams %}
+        "{{ team.id }}": [
+            {% for m in team.members.all %}{% if m.role == 'creative' %}
+            { id: "{{ m.id }}", name: "{{ m.username }}" },
+            {% endif %}{% endfor %}
+        ],
+        {% endfor %}
+    };
+
+    function updateCreativesList() {
+        const teamId = teamSelect.value;
+        const isBuyer = roleSelect.value === 'media_buyer';
+
+        // Показуємо поле тільки якщо обрана роль - баєр
+        if (isBuyer) {
+            creativeContainer.style.display = 'block';
         } else {
-            input.type = "password";
+            creativeContainer.style.display = 'none';
+        }
+
+        // Очищуємо поточні опції та заповнюємо новими відповідно до команди
+        creativeSelect.innerHTML = '';
+        if (teamId && teamCreatives[teamId]) {
+            teamCreatives[teamId].forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name;
+                creativeSelect.appendChild(opt);
+            });
+        }
+
+        // Якщо креативників у команді немає, додаємо пояснювальну опцію
+        if (creativeSelect.children.length === 0 && isBuyer) {
+            const opt = document.createElement('option');
+            opt.disabled = true;
+            opt.textContent = "У цій команді немає креативників";
+            creativeSelect.appendChild(opt);
         }
     }
 
-    function copyPwd(id) {
-        let input = document.getElementById(id);
-        navigator.clipboard.writeText(input.value).then(() => {
-            alert("Тимчасовий пароль скопійовано: " + input.value);
-        }).catch(err => {
-            console.error('Не вдалося скопіювати текст: ', err);
-        });
-    }
+    // Слухаємо зміни
+    teamSelect.addEventListener('change', updateCreativesList);
+    roleSelect.addEventListener('change', updateCreativesList);
+
+    // Початковий запуск
+    updateCreativesList();
+});
 </script>
 {% endblock %}

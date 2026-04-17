@@ -12,10 +12,14 @@ class ForcePasswordChangeMiddleware:
         # Перевіряємо: чи авторизований, чи НЕ адмін, і чи НЕ змінював пароль
         if user.is_authenticated and not user.is_superuser:
             if not user.has_changed_password:
+                # Використовуємо правильну назву маршруту з урахуванням namespace 'users'
+                change_password_url = reverse('users:first_time_password_change')
+                logout_url = reverse('logout')
+
                 # Дозволяємо доступ тільки до сторінки зміни пароля та сторінки виходу
-                allowed_paths = [reverse('users:change_password'), reverse('logout')]
+                allowed_paths = [change_password_url, logout_url]
 
                 if request.path not in allowed_paths:
-                    return redirect('users:change_password')
+                    return redirect(change_password_url)
 
         return self.get_response(request)

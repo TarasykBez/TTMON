@@ -10,11 +10,16 @@ urlpatterns = [
     path('password/first-time/', views.first_time_password_change, name='first_time_password_change'),
     path('password/reset/', views.request_password_reset, name='request_reset'),
 
-
     # МАРШРУТИ ДЛЯ TIKTOK
     path('integrations/', views.buyer_integrations, name='buyer_integrations'),
     path('tiktok/login/', views.tiktok_login, name='tiktok_login'),
     path('tiktok/callback/', views.tiktok_callback, name='tiktok_callback'),
     path('tiktok/disconnect/', views.tiktok_disconnect, name='tiktok_disconnect'),
     path('assign-account/', views.assign_ad_account, name='assign_ad_account'),
+
+    # НОВИЙ МАРШРУТ: Керування доступом до Business Center
+    path('update-bc-access/<int:integration_id>/', views.update_bc_access, name='update_bc_access'),
+
+    path('edit-user/<int:user_id>/', views.edit_user, name='edit_user'),
+    path('manage-teams/', views.manage_teams, name='manage_teams'),
 ]
