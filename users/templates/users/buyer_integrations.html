@@ -2,96 +2,139 @@
 
 {% block content %}
 <div class="container mt-4">
-    <div class="row">
-        <div class="col-lg-3 mb-4">
-            <div class="list-group shadow-sm border-0">
-                <a href="#" class="list-group-item list-group-item-action active bg-dark border-0 py-3">
-                    <i class="fa-solid fa-plug me-2"></i> Інтеграції
-                </a>
-                <a href="#" class="list-group-item list-group-item-action py-3 text-muted">
-                    <i class="fa-solid fa-user-gear me-2"></i> Налаштування профілю <span class="badge bg-light text-dark ms-1">Скоро</span>
-                </a>
-            </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{% if is_admin %}Менеджмент TikTok Enterprise{% else %}Мої інтеграції{% endif %}</h2>
+        {% if is_admin %}
+        <a href="{% url 'users:tiktok_login' %}" class="btn btn-primary">+ Підключити новий БЦ</a>
+        {% endif %}
+    </div>
+    <hr>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">{% if is_admin %}Активні Business Centers{% else %}Мій робочий статус{% endif %}</h5>
         </div>
-
-        <div class="col-lg-9">
-            <h2 class="fw-bold mb-4">Керування інтеграціями</h2>
-            <p class="text-muted mb-4">Підключіть ваші рекламні акаунти для автоматизації публікацій та моніторингу статистики.</p>
-
-            <div class="card shadow-sm border-0 mb-4" style="border-radius: 15px; overflow: hidden;">
-                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
-                        <i class="fa-brands fa-tiktok fs-3 me-3"></i>
-                        <h5 class="mb-0 fw-bold">TikTok Advertising API</h5>
-                    </div>
-                    {% if tiktok_account %}
-                        <span class="badge bg-success">Підключено</span>
+        <div class="card-body">
+            {% for integration in main_integrations %}
+            <div class="d-flex align-items-center {% if not forloop.last %}mb-3 pb-3 border-bottom{% endif %}">
+                <div class="flex-shrink-0">
+                    {% if integration.avatar_url %}
+                        <img src="{{ integration.avatar_url }}" class="rounded-circle border" width="54" height="54">
                     {% else %}
-                        <span class="badge bg-secondary">Не підключено</span>
-                    {% endif %}
-                </div>
-
-                <div class="card-body p-4">
-                    {% if tiktok_account %}
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div class="d-flex align-items-center">
-                                {% if tiktok_account.avatar_url %}
-                                    <img src="{{ tiktok_account.avatar_url }}" class="rounded-circle shadow-sm me-4" style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #eee;">
-                                {% else %}
-                                    <div class="rounded-circle bg-light d-flex justify-content-center align-items-center me-4" style="width: 80px; height: 80px; font-size: 32px; border: 3px solid #eee;">
-                                        <i class="fa-solid fa-user text-muted"></i>
-                                    </div>
-                                {% endif %}
-
-                                <div>
-                                    <h4 class="mb-1 fw-bold">{{ tiktok_account.display_name }}</h4>
-                                    <p class="text-muted mb-0 small">ID акаунта: <code class="bg-light px-2 rounded">{{ tiktok_account.open_id }}</code></p>
-                                    <p class="text-muted small">Востаннє оновлено: {{ tiktok_account.updated_at|date:"d.m.Y H:i" }}</p>
-                                </div>
-                            </div>
-
-                            <form action="{% url 'users:tiktok_disconnect' %}" method="POST" onsubmit="return confirm('Ви впевнені, що хочете відключити цей TikTok акаунт? Ви втратите доступ до статистики.');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-danger fw-bold">
-                                    <i class="fa-solid fa-link-slash me-2"></i> Відключити
-                                </button>
-                            </form>
-                        </div>
-                    {% else %}
-                        <div class="row align-items-center">
-                            <div class="col-md-8">
-                                <p class="mb-0 text-muted">Підключення акаунта дозволить вам автоматично створювати рекламні кампанії прямо з TTMON та відстежувати їхню ефективність у реальному часі.</p>
-                            </div>
-                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                                <<a href="{% url 'users:tiktok_login' %}" class="btn btn-dark fw-bold px-4 py-2 shadow-sm" style="background: #000; border-radius: 8px;">
-                                    <i class="fa-brands fa-tiktok me-2"></i> Підключити TikTok
-                                </a>
-                            </div>
+                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 54px; height: 54px;">
+                            <i class="fas fa-briefcase fa-lg text-secondary"></i>
                         </div>
                     {% endif %}
                 </div>
-
-                {% if tiktok_account %}
-                <div class="card-footer bg-light border-0 py-3">
-                    <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i> Токен активний. Система має дозвіл на перегляд статистики та базової інформації про профіль.</small>
+                <div class="ms-3 flex-grow-1">
+                    <h5 class="mb-0"> {{ integration.display_name }} <span class="badge bg-success ms-2" style="font-size: 0.7rem;">Connected</span></h5>
+                    <p class="text-muted small mb-0">
+                        {% if is_admin %}
+                        ID: <code>{{ integration.open_id }}</code> | Оновлено: {{ integration.updated_at|date:"d.m.Y H:i" }}
+                        {% else %}
+                        Ваш профіль працює через цей корпоративний Business Center
+                        {% endif %}
+                    </p>
+                </div>
+                {% if is_admin %}
+                <div class="ms-auto">
+                    <form action="{% url 'users:tiktok_disconnect' %}" method="POST" onsubmit="return confirm('Видалити цей БЦ та всі його кабінети?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Відключити</button>
+                    </form>
                 </div>
                 {% endif %}
             </div>
+            {% empty %}
+            <p class="text-center text-muted my-3">Активних підключень до TikTok не знайдено.</p>
+            {% endfor %}
+        </div>
+    </div>
 
-            <div class="card shadow-sm border-0 mb-4 opacity-75 bg-light" style="border-radius: 15px;">
-                <div class="card-body p-4 d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
-                        <i class="fa-brands fa-facebook fs-3 me-3 text-primary"></i>
+    <h5 class="mb-3">Ваші рекламні кабінети (Advertisers)</h5>
+
+    <div class="row">
+        {% for account in assigned_accounts %}
+        <div class="col-md-6 mb-4">
+            <div class="card border-start border-primary border-4 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h5 class="mb-0 fw-bold">Facebook Ads API</h5>
-                            <small class="text-muted">Заплановано в наступних оновленнях</small>
+                            <h6 class="card-title mb-1 text-dark fw-bold">{{ account.advertiser_name }}</h6>
+                            <p class="text-muted small mb-2">ID: <code>{{ account.advertiser_id }}</code></p>
+
+                            <div class="d-flex gap-2 align-items-center">
+                                <span class="badge {% if account.status == 'ENABLE' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ account.status }}
+                                </span>
+                                {% if is_admin %}
+                                <span class="badge bg-info text-dark">
+                                    <i class="fas fa-user me-1"></i> Баєр: {{ account.buyer.username|default:"НЕ ПРИЗНАЧЕНО" }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted small"><i class="fas fa-link me-1"></i> {{ account.main_integration.display_name }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div>
+                            {% if is_admin %}
+                            <button type="button" class="btn btn-sm btn-warning"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#assignModal{{ account.id }}">
+                                <i class="fas fa-user-edit"></i>
+                            </button>
+                            {% else %}
+                            <a href="#" class="btn btn-sm btn-outline-primary">Статистика</a>
+                            {% endif %}
                         </div>
                     </div>
-                    <button class="btn btn-outline-secondary btn-sm disabled">Скоро</button>
                 </div>
             </div>
-
         </div>
+
+        {% if is_admin %}
+        <div class="modal fade" id="assignModal{{ account.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <form action="{% url 'users:assign_ad_account' %}" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="account_id" value="{{ account.id }}">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Призначити баєра</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="small text-muted">Кабінет: <strong>{{ account.advertiser_name }}</strong></p>
+                            <select name="buyer_id" class="form-select">
+                                <option value="">--- Відв'язати баєра ---</option>
+                                {% for buyer in all_buyers %}
+                                <option value="{{ buyer.id }}" {% if account.buyer == buyer %}selected{% endif %}>
+                                    {{ buyer.username }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary w-100">Зберегти</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-light border text-center py-4">
+                {% if is_admin %}
+                Додайте Business Center для імпорту кабінетів.
+                {% else %}
+                У вас ще немає призначених рекламних кабінетів.
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

@@ -1,18 +1,18 @@
 from django.contrib import admin
-from .models import Campaign, AdCreative
+from .models import TikTokAdAccount, Campaign, AdCreative
+
+# Реєстрація через декоратор (це перший раз)
+@admin.register(TikTokAdAccount)
+class TikTokAdAccountAdmin(admin.ModelAdmin):
+    list_display = ('advertiser_name', 'advertiser_id', 'buyer', 'status')
+    list_editable = ('buyer',)
+    search_fields = ('advertiser_name', 'advertiser_id')
 
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
-    list_display = ('name', 'owner', 'status', 'budget', 'spend', 'get_ctr')
+    list_display = ('name', 'owner', 'status', 'budget', 'spend', 'ctr')
     list_filter = ('status', 'owner')
-    search_fields = ('name',)
-
-    def get_ctr(self, obj):
-        return f"{obj.ctr}%"
-    get_ctr.short_description = 'CTR'
 
 @admin.register(AdCreative)
 class AdCreativeAdmin(admin.ModelAdmin):
-    list_display = ('title', 'campaign', 'duration', 'spend', 'roi', 'is_burning_out')
-    list_filter = ('is_burning_out', 'campaign')
-    search_fields = ('title', 'hook')
+    list_display = ('title', 'campaign', 'spend', 'roi')
