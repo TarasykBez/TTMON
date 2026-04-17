@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-z!3!m3a1@givdc_8w$bix)0xzt44=@7^9!ekk(j=0qn92-kt8#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -132,3 +132,10 @@ LOGOUT_REDIRECT_URL = 'login'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+CSRF_TRUSTED_ORIGINS = ['https://unranked-reason-ion.ngrok-free.dev']
+
+# TIKTOK API SETTINGS
+TIKTOK_CLIENT_KEY = 'sbawb3omu4y88vbdqz'
+TIKTOK_CLIENT_SECRET = 'tJtuJLGlupVSOZEZq6i2vL2up6EdqD8N'
+TIKTOK_REDIRECT_URI = 'https://unranked-reason-ion.ngrok-free.dev/users/tiktok/callback/'
