@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTMON | TikTok Ads Performance & Creative Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .hero-section { background: linear-gradient(135deg, #121212 0%, #1f1f1f 100%); color: white; padding: 100px 0; }
+        .feature-icon { font-size: 2rem; color: #fe2c55; }
+        .screenshot-box { border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; transition: transform 0.3s; }
+        .screenshot-box:hover { transform: scale(1.02); }
+        .privacy-section { background-color: #f8f9fa; padding: 60px 0; }
+        .navbar-brand { font-weight: 800; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">TTMON Analytics</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#gallery">Platform Gallery</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#privacy">Privacy Policy</a></li>
+                </ul>
+                <div class="d-flex">
+                    <a href="/login" class="btn btn-outline-light me-2">Log In</a>
+                    <a href="#demo" class="btn btn-danger" style="background-color: #fe2c55; border: none;">Request Demo</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero-section text-center">
+        <div class="container">
+            <h1 class="display-4 fw-bold mb-3">Maximize Your TikTok Ad Efficiency</h1>
+            <p class="lead mb-4">The professional internal system for real-time monitoring, ROI tracking, and creative workflow automation.</p>
+            <a href="/login" class="btn btn-light btn-lg px-4 me-2 fw-bold">Sign In to Workspace</a>
+            <a href="#gallery" class="btn btn-outline-light btn-lg px-4">Explore Platform</a>
+        </div>
+    </header>
+
+    <section id="features" class="py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold">Designed for High-Performance Media Buying</h2>
+            </div>
+            <div class="row g-4 text-center">
+                <div class="col-md-4">
+                    <div class="feature-icon mb-3">📊</div>
+                    <h4>Real-time API Integration</h4>
+                    <p>Direct sync with TikTok Marketing API to fetch Spend, ROI, and Conversions. No more manual CSV exports.</p>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-icon mb-3">🎬</div>
+                    <h4>Creative Workflow</h4>
+                    <p>A seamless bridge between Buyers and Creators. Manage tasks, scripts, and video assets in one secure place.</p>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-icon mb-3">🔥</div>
+                    <h4>Ad Burnout Detection</h4>
+                    <p>Automated alerts when your creative performance drops. Save budget by detecting "Ad Fatigue" instantly.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="gallery" class="py-5 bg-light">
+        <div class="container text-center">
+            <h2 class="fw-bold mb-4">Inside the TTMON Platform</h2>
+            <p class="text-muted mb-5">Explore our comprehensive tools for media buyers and creative teams.</p>
+
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="card h-100 border-0 bg-transparent">
+                        <img src="images/tasks.png" alt="Task Management" class="img-fluid screenshot-box">
+                        <h5 class="fw-bold mt-2">Task Management Board</h5>
+                        <p class="text-muted small">Track creative production from draft to completion.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card h-100 border-0 bg-transparent">
+                        <img src="images/integrations.png" alt="TikTok API Integration" class="img-fluid screenshot-box">
+                        <h5 class="fw-bold mt-2">TikTok API Integration</h5>
+                        <p class="text-muted small">Securely connect and manage Business Centers via OAuth 2.0.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card h-100 border-0 bg-transparent">
+                        <img src="images/team.png" alt="Team Management" class="img-fluid screenshot-box">
+                        <h5 class="fw-bold mt-2">RBAC Team Management</h5>
+                        <p class="text-muted small">Granular access control for Admins, Buyers, and Creators.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="privacy" class="privacy-section">
+        <div class="container">
+            <h2 class="fw-bold mb-4">Privacy Policy & Data Usage</h2>
+            <div class="card p-4 border-0 shadow-sm">
+                <h5 class="fw-bold text-danger">1. Data Collection via TikTok API</h5>
+                <p>TTMON uses the TikTok Marketing API to access advertising performance data (spend, ROI, and conversion metrics). This access is granted only through explicit user authorization via OAuth 2.0.</p>
+
+                <h5 class="fw-bold text-danger mt-3">2. How We Use Your Data</h5>
+                <p>The retrieved data is used exclusively to provide internal analytical dashboards for media buying teams. We use it to monitor creative performance and automate the production pipeline.</p>
+
+                <h5 class="fw-bold text-danger mt-3">3. Data Security</h5>
+                <p>We do not share your data with third parties. All API tokens and sensitive information are encrypted and used strictly within your private organization workspace.</p>
+
+                <h5 class="fw-bold text-danger mt-3">4. User Control</h5>
+                <p>Users can disconnect their TikTok Business Centers at any time through the "Integrations" page, which immediately revokes all access permissions directly from our system.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-4 bg-dark text-white text-center">
+        <p class="mb-0">&copy; 2026 TTMON Internal Marketing System. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.css"></script>
+</body>
+</html>

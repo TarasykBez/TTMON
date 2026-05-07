@@ -1,3 +1,4 @@
+import os
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -9,14 +10,17 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
-    path('', include('analytics.urls')),
+
+    path('analytics/', include('analytics.urls')),
     path('tasks/', include('tasks.urls')),
     path('users/', include('users.urls')),
+
     path('terms/', TemplateView.as_view(template_name='pages/terms.html'), name='terms'),
     path('policy/', TemplateView.as_view(template_name='pages/policy.html'), name='policy'),
+
+    path('', TemplateView.as_view(template_name='index.html'), name='landing'),
 ]
 
-
-# Додаємо роздачу медіафайлів
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static('/images/', document_root=os.path.join(settings.BASE_DIR, 'images'))
