@@ -1,46 +1,336 @@
 {% extends 'base.html' %}
 
-{% block title %}Дашборд{% endblock %}
-
 {% block content %}
-    <h2 class="mb-4">Рекламні кампанії</h2>
-    
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <table class="table table-hover align-middle">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<style>
+    /* UI Списків у стилі Flatpickr */
+    .dropdown-check-list { position: relative; width: 100%; }
+    .dropdown-check-list .anchor {
+        position: relative; cursor: pointer; display: block; padding: 7px 12px;
+        border: 1px solid #dee2e6; border-radius: 6px; background: #fff;
+        font-size: 0.85rem; color: #495057; transition: all 0.2s ease-in-out;
+    }
+    .dropdown-check-list .anchor:hover { border-color: #0d6efd; }
+    .dropdown-check-list .anchor:after {
+        content: ""; border-left: 1px solid #666; border-top: 1px solid #666;
+        padding: 2.5px; position: absolute; right: 12px; top: 40%; transform: rotate(-135deg);
+    }
+    .dropdown-check-list ul.items {
+        padding: 0; display: none; margin: 0; border: 1px solid #dee2e6;
+        border-radius: 8px; position: absolute; z-index: 1050; background: #fff;
+        width: 100%; max-height: 300px; overflow-y: auto;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-top: 5px;
+    }
+    .dropdown-check-list.visible ul.items { display: block; }
+    .dropdown-check-list ul.items li {
+        list-style: none; padding: 8px 12px; border-bottom: 1px solid #f8f9fa;
+        display: flex; align-items: center; font-size: 0.85rem; cursor: pointer;
+    }
+    .dropdown-check-list ul.items li:hover { background-color: #f1f3f5; }
+    .dropdown-check-list ul.items li label { width: 100%; cursor: pointer; margin-bottom: 0; display: flex; align-items: center; }
+
+    .dropdown-check-list .search-container { position: sticky; top: 0; background: #fff; padding: 10px; border-bottom: 1px solid #eee; z-index: 10; }
+    .dropdown-check-list .search-input { width: 100%; border: 1px solid #dee2e6; border-radius: 4px; padding: 5px 10px; font-size: 0.8rem; outline: none; }
+    .dropdown-check-list .search-input:focus { border-color: #0d6efd; }
+
+    /* Таблиця та кастомізація */
+    .table-container { position: relative; overflow-x: auto; background: white; border-radius: 10px; }
+    .sticky-col { position: sticky; right: 0; background-color: #fff !important; z-index: 10; border-left: 1px solid #eee; box-shadow: -5px 0 10px rgba(0,0,0,0.02); }
+    th { cursor: pointer; white-space: nowrap; font-weight: 600; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.02em; }
+    .sort-icon::after { content: ' ↕'; opacity: 0.2; }
+    th.asc .sort-icon::after { content: ' ↑'; opacity: 1; color: #0d6efd; }
+    th.desc .sort-icon::after { content: ' ↓'; opacity: 1; color: #0d6efd; }
+
+    #column-order-list li { cursor: move; padding: 10px; background: #fff; border: 1px solid #eee; margin-bottom: 6px; border-radius: 6px; display: flex; align-items: center; font-size: 0.85rem; }
+    #column-order-list li:hover { border-color: #0d6efd; }
+</style>
+
+<form id="master-analytics-form" method="GET" action="{% url 'analytics:dashboard' %}">
+    <div class="card p-3 mb-4 shadow-sm border-0 bg-white">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="small text-muted fw-bold mb-1">Період (UTC+3):</label>
+                <input type="text" name="date_range" id="date-picker" class="form-control form-control-sm bg-white border-light shadow-none" value="{{ current_date_range }}">
+            </div>
+
+            <div class="col-md-2">
+                <label class="small text-muted fw-bold mb-1">ГЕО:</label>
+                <div class="dropdown-check-list" id="geo-dropdown">
+                    <span class="anchor">{% if selected_geos %}{{ selected_geos|length }} обрано{% else %}Оберіть ГЕО{% endif %}</span>
+                    <ul class="items">
+                        <div class="search-container"><input type="text" class="search-input" placeholder="Пошук ГЕО..."></div>
+                        {% for geo in geo_choices %}
+                        <li>
+                            <label><input type="checkbox" name="geos" value="{{ geo }}" class="me-2 filter-checkbox" {% if geo in selected_geos %}checked{% endif %}> {{ geo }}</label>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <label class="small text-muted fw-bold mb-1">Баєри:</label>
+                <div class="dropdown-check-list" id="buyer-dropdown">
+                    <span class="anchor">{% if selected_buyers %}{{ selected_buyers|length }} обрано{% else %}Оберіть Баєрів{% endif %}</span>
+                    <ul class="items">
+                        <div class="search-container"><input type="text" class="search-input" placeholder="Ім'я баєра..."></div>
+                        {% for b in team_members %}
+                        <li>
+                            <label><input type="checkbox" name="buyers" value="{{ b.id }}" class="me-2 filter-checkbox" {% if b.id|stringformat:"i" in selected_buyers %}checked{% endif %}> {{ b.username }}</label>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">Застосувати</button>
+            </div>
+            <div class="col-md-1">
+                <a href="{% url 'analytics:dashboard' %}" class="btn btn-outline-secondary btn-sm w-100">Скинути</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4 text-center">
+        <div class="col-md-2">
+            <div class="card bg-primary text-white h-100 shadow-sm border-0">
+                <div class="card-body p-2"><small class="opacity-75">Загальний Спенд</small><h4 class="mt-1 fw-bold">${{ stats.total_spend|floatformat:2 }}</h4></div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-dark text-white h-100 shadow-sm border-0">
+                <div class="card-body p-2"><small class="opacity-75">Активні / Вигорілі</small><h4 class="mt-1 fw-bold">{{ stats.active_campaigns }} <span class="text-danger">/ {{ stats.burning_campaigns }}</span></h4></div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-info text-white h-100 shadow-sm border-0">
+                <div class="card-body p-2"><small class="opacity-75">ТОП Креатив (ROI)</small><div class="text-truncate px-2 small">{{ stats.top_creative.title|default:"---" }}</div><small class="fw-bold">{{ stats.top_creative.roi|default:0 }}%</small></div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-success text-white h-100 shadow-sm border-0">
+                <div class="card-body p-2"><small class="opacity-75">ТОП Баєр</small><div class="text-truncate px-2 small">{{ stats.top_buyer.username|default:"---" }}</div><small>{{ stats.top_buyer.total_conv|default:0 }} conv.</small></div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-warning text-dark h-100 shadow-sm border-0">
+                <div class="card-body p-2"><small class="opacity-75">ТОП Креативник</small><div class="text-truncate px-2 small">{{ stats.top_creator.username|default:"---" }}</div><small>{{ stats.top_creator.completed_tasks|default:0 }} ТЗ</small></div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-primary h-100 shadow-sm bg-white">
+                <div class="card-body p-2"><small class="text-muted">Середній ROI</small><h4 class="mt-1 text-primary fw-bold">{{ stats.avg_roi|floatformat:2 }}%</h4></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 overflow-hidden">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold">Моніторинг рекламних кампаній</h6>
+            <button type="button" class="btn btn-sm btn-light border" data-bs-toggle="modal" data-bs-target="#columnModal">
+                <i class="fas fa-columns me-1"></i> Кастомізація
+            </button>
+        </div>
+
+        <div class="table-container">
+            <table class="table table-hover mb-0 align-middle small" id="campaignTable">
                 <thead class="table-light">
-                    <tr>
-                        <th>Назва кампанії</th>
-                        <th>Статус</th>
-                        <th>Бюджет</th>
-                        <th>Витрачено</th>
-                        <th>CTR</th>
+                    <tr id="table-header-row">
+                        <th data-id="col-check" class="ps-3"><input type="checkbox" id="select-all-master"></th>
+                        <th data-id="col-name" onclick="sortTable(1, 'string')">Кампанія <span class="sort-icon"></span></th>
+                        <th data-id="col-status" data-col="status" onclick="sortTable(2, 'string')">Статус</th>
+                        <th data-id="col-roi" data-col="roi" onclick="sortTable(3, 'number')">ROI <span class="sort-icon"></span></th>
+                        <th data-id="col-geo" data-col="geo" onclick="sortTable(4, 'string')">ГЕО</th>
+                        <th data-id="col-buyer" data-col="buyer" onclick="sortTable(5, 'string')">Баєр</th>
+                        <th data-id="col-start" data-col="start_date" onclick="sortTable(6, 'date')">Старт</th>
+                        <th data-id="col-budget" data-col="budget" onclick="sortTable(7, 'number')">Бюджет <span class="sort-icon"></span></th>
+                        <th data-id="col-spend" data-col="spend" onclick="sortTable(8, 'number')">Спенд <span class="sort-icon"></span></th>
+                        <th data-id="col-burnout" data-col="burnout" onclick="sortTable(9, 'number')">Вигорання <span class="sort-icon"></span></th>
+                        <th data-id="col-conv" data-col="conv" onclick="sortTable(10, 'number')">Конв. <span class="sort-icon"></span></th>
+                        <th data-id="col-ctr" data-col="ctr" onclick="sortTable(11, 'number')">CTR <span class="sort-icon"></span></th>
+                        <th data-id="col-creatives">Креативи (ID)</th>
+                        <th class="sticky-col text-center px-3" onclick="event.stopPropagation()">Дії</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for campaign in campaigns %}
                     <tr>
-                        <td class="fw-bold">{{ campaign.name }}</td>
-                        <td>
-                            {% if campaign.status == 'ACTIVE' %}
-                                <span class="badge bg-success">Активна</span>
-                            {% elif campaign.status == 'PAUSED' %}
-                                <span class="badge bg-warning text-dark">На паузі</span>
-                            {% else %}
-                                <span class="badge bg-secondary">Завершена</span>
-                            {% endif %}
+                        <td data-id="col-check" class="ps-3"><input type="checkbox" name="selected_campaigns" value="{{ campaign.id }}" class="form-check-input campaign-checkbox" {% if campaign.id in selected_ids %}checked{% endif %}></td>
+                        <td data-id="col-name"><strong>{{ campaign.name }}</strong></td>
+                        <td data-id="col-status" data-col="status"><span class="badge {% if campaign.status == 'ACTIVE' %}bg-success{% else %}bg-secondary{% endif %} rounded-pill">{{ campaign.status }}</span></td>
+                        <td data-id="col-roi" data-col="roi" class="fw-bold">{{ campaign.average_roi }}%</td>
+                        <td data-id="col-geo" data-col="geo" class="fw-bold">{{ campaign.geo }}</td>
+                        <td data-id="col-buyer" data-col="buyer">{{ campaign.owner.username }}</td>
+                        <td data-id="col-start" data-col="start_date">{{ campaign.start_date|date:"Y-m-d"|default:"---" }}</td>
+                        <td data-id="col-budget" data-col="budget">${{ campaign.budget }}</td>
+                        <td data-id="col-spend" data-col="spend">${{ campaign.spend }}</td>
+                        <td data-id="col-burnout" data-col="burnout">
+                            <div class="d-flex align-items-center">
+                                <div class="progress flex-grow-1 me-2" style="height: 6px; width: 60px;">
+                                    <div class="progress-bar {% if campaign.burnout_rate > 50 %}bg-danger{% else %}bg-success{% endif %}" style="width: {{ campaign.burnout_rate }}%"></div>
+                                </div>
+                                <span class="fw-bold">{{ campaign.burnout_rate }}%</span>
+                            </div>
                         </td>
-                        <td>${{ campaign.budget }}</td>
-                        <td>${{ campaign.spend }}</td>
-                        <td><span class="text-primary fw-bold">{{ campaign.ctr }}%</span></td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center text-muted py-3">Немає жодної кампанії.</td>
+                        <td data-id="col-conv" data-col="conv" class="fw-bold">{{ campaign.conversions }}</td>
+                        <td data-id="col-ctr" data-col="ctr" class="text-primary fw-bold">{{ campaign.ctr }}%</td>
+                        <td data-id="col-creatives">{% for c in campaign.creatives.all %}{{ c.id }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                        <td class="sticky-col text-center px-3">
+                            <a href="{% url 'analytics:campaign_detail' campaign.id %}" class="btn btn-sm btn-light border rounded-circle shadow-sm"><i class="fas fa-chevron-right text-primary"></i></a>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+</form>
+
+<div class="modal fade" id="columnModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-light"><h6>Порядок та видимість</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <ul id="column-order-list" class="list-unstyled">
+                    <li data-id="col-status"><input type="checkbox" checked class="me-2 col-toggle"> Статус</li>
+                    <li data-id="col-roi"><input type="checkbox" checked class="me-2 col-toggle"> ROI</li>
+                    <li data-id="col-geo"><input type="checkbox" checked class="me-2 col-toggle"> ГЕО</li>
+                    <li data-id="col-buyer"><input type="checkbox" checked class="me-2 col-toggle"> Баєр</li>
+                    <li data-id="col-start"><input type="checkbox" checked class="me-2 col-toggle"> Старт</li>
+                    <li data-id="col-budget"><input type="checkbox" checked class="me-2 col-toggle"> Бюджет</li>
+                    <li data-id="col-spend"><input type="checkbox" checked class="me-2 col-toggle"> Спенд</li>
+                    <li data-id="col-burnout"><input type="checkbox" checked class="me-2 col-toggle"> Вигорання</li>
+                    <li data-id="col-conv"><input type="checkbox" checked class="me-2 col-toggle"> Конв.</li>
+                    <li data-id="col-ctr"><input type="checkbox" checked class="me-2 col-toggle"> CTR</li>
+                </ul>
+                <button class="btn btn-primary btn-sm w-100 mt-2" onclick="saveTableSettings()">Зберегти зміни</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Календар Flatpickr
+    flatpickr("#date-picker", {
+        mode: "range", dateFormat: "Y-m-d",
+        onClose: function(dates, str, inst) { if(dates.length === 1) inst.setDate([dates[0], dates[0]], true); }
+    });
+
+    // 2. Логіка Мульти-селектів (Пошук та запобігання закриттю)
+    document.querySelectorAll('.dropdown-check-list').forEach(list => {
+        const anchor = list.querySelector('.anchor');
+        const items = list.querySelector('.items');
+        const searchInput = list.querySelector('.search-input');
+
+        anchor.onclick = (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.dropdown-check-list').forEach(l => { if(l!==list) l.classList.remove('visible'); });
+            list.classList.toggle('visible');
+        };
+
+        // Не закривати список при кліку всередину (на чекбокс або пошук)
+        items.onclick = (e) => e.stopPropagation();
+
+        // Пошук у списку
+        if(searchInput) {
+            searchInput.oninput = () => {
+                const val = searchInput.value.toLowerCase();
+                items.querySelectorAll('li').forEach(li => {
+                    const text = li.innerText.toLowerCase();
+                    li.style.display = text.includes(val) ? 'flex' : 'none';
+                });
+            };
+        }
+    });
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.dropdown-check-list').forEach(l => l.classList.remove('visible'));
+    });
+
+    // 3. Select All в таблиці
+    const masterCb = document.getElementById('select-all-master');
+    const slaveCbs = document.querySelectorAll('.campaign-checkbox');
+    if(masterCb) {
+        masterCb.onclick = () => slaveCbs.forEach(cb => cb.checked = masterCb.checked);
+    }
+
+    // 4. Динамічне сортування (Двостороннє)
+    function sortTable(n, type) {
+        const table = document.getElementById("campaignTable");
+        let rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        switching = true; dir = "asc";
+        const headers = table.querySelectorAll("th");
+        headers.forEach(h => h.classList.remove("asc", "desc"));
+
+        while (switching) {
+            switching = false; rows = table.rows;
+            for (i = 1; i < (rows.length - 1); i++) {
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName("td")[n];
+                y = rows[i+1].getElementsByTagName("td")[n];
+
+                let vX = x.innerText.replace('$', '').replace('%', '').trim().toLowerCase();
+                let vY = y.innerText.replace('$', '').replace('%', '').trim().toLowerCase();
+
+                if (type === 'number') {
+                    vX = parseFloat(vX) || 0;
+                    vY = parseFloat(vY) || 0;
+                }
+
+                if ((dir == "asc" && vX > vY) || (dir == "desc" && vX < vY)) {
+                    shouldSwitch = true; break;
+                }
+            }
+            if (shouldSwitch) {
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true; switchcount++;
+            } else if (switchcount == 0 && dir == "asc") {
+                dir = "desc"; switching = true;
+            }
+        }
+        headers[n].classList.add(dir === "asc" ? "asc" : "desc");
+    }
+
+    // 5. Drag & Drop Колонки (Sortable)
+    const orderList = document.getElementById('column-order-list');
+    Sortable.create(orderList, { animation: 150 });
+
+    function saveTableSettings() {
+        const settings = [];
+        orderList.querySelectorAll('li').forEach(li => {
+            settings.push({ id: li.getAttribute('data-id'), visible: li.querySelector('.col-toggle').checked });
+        });
+        localStorage.setItem('ttmon_table_v5', JSON.stringify(settings));
+        location.reload();
+    }
+
+    function applyTableSettings() {
+        const cfg = JSON.parse(localStorage.getItem('ttmon_table_v5'));
+        if (!cfg) return;
+        const headerRow = document.getElementById('table-header-row');
+        const rows = document.querySelectorAll('#campaignTable tbody tr');
+
+        cfg.forEach(item => {
+            const th = document.querySelector(`th[data-id="${item.id}"]`);
+            if (th) {
+                headerRow.appendChild(th);
+                th.style.display = item.visible ? '' : 'none';
+            }
+            rows.forEach(row => {
+                const td = row.querySelector(`td[data-id="${item.id}"]`);
+                if (td) { row.appendChild(td); td.style.display = item.visible ? '' : 'none'; }
+            });
+            const li = document.querySelector(`li[data-id="${item.id}"]`);
+            if (li) { li.querySelector('.col-toggle').checked = item.visible; orderList.appendChild(li); }
+        });
+        const stickyTh = document.querySelector('.sticky-col');
+        headerRow.appendChild(stickyTh);
+        rows.forEach(row => row.appendChild(row.querySelector('.sticky-col')));
+    }
+    window.addEventListener('DOMContentLoaded', applyTableSettings);
+</script>
 {% endblock %}

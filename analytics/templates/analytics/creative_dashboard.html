@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Дашборд Креативника{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Особиста статистика креативника</h2>
+    <span class="badge bg-warning text-dark p-2">
+        <i class="fas fa-palette me-1"></i> Творчий профіль: {{ user.username }}
+    </span>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-2">
+        <div class="card border-primary h-100 shadow-sm">
+            <div class="card-body text-center">
+                <small class="text-muted">Середній ROI</small>
+                <h3 class="mt-2 text-primary">{{ stats.avg_roi }}%</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card bg-success text-white h-100 shadow-sm">
+            <div class="card-body text-center">
+                <small>Виконано ТЗ</small>
+                <h3 class="mt-2">{{ stats.completed_tasks }}</h3>
+                <small class="opacity-75">з {{ stats.total_tasks }} всього</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card bg-dark text-white h-100 shadow-sm">
+            <div class="card-body text-center">
+                <small>Креативів у ротації</small>
+                <h3 class="mt-2">{{ stats.active_creatives_count }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card bg-danger text-white h-100 shadow-sm">
+            <div class="card-body text-center">
+                <small>Потребують заміни</small>
+                <h3 class="mt-2">{{ stats.burning_count }}</h3>
+                <small>Ad Burnout 🔥</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card bg-info text-white h-100 shadow-sm">
+            <div class="card-body text-center">
+                <small>Найкращий ROI</small>
+                <h5 class="mt-2 text-truncate">{{ stats.top_video.title|default:"---" }}</h5>
+                <small class="fw-bold">{{ stats.top_video.roi }}%</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card bg-secondary text-white h-100 shadow-sm">
+            <div class="card-body text-center">
+                <small>Ефективність</small>
+                <h3 class="mt-2">{{ stats.efficiency }}%</h3>
+                <small>вчасно зданих ТЗ</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Результативність ваших відео</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Креатив</th>
+                            <th>Кампанія</th>
+                            <th>Спенд</th>
+                            <th>ROI</th>
+                            <th>Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for creative in my_creatives %}
+                        <tr>
+                            <td><strong>{{ creative.title }}</strong></td>
+                            <td><small class="text-muted">{{ creative.campaign.name }}</small></td>
+                            <td>${{ creative.spend }}</td>
+                            <td>
+                                <span class="fw-bold {% if creative.roi > 100 %}text-success{% else %}text-primary{% endif %}">
+                                    {{ creative.roi }}%
+                                </span>
+                            </td>
+                            <td>
+                                {% if creative.is_burning_out %}
+                                    <span class="badge bg-danger">Вигорає 🔥</span>
+                                {% else %}
+                                    <span class="badge bg-success">Ефективний</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center py-4 text-muted">Дані по відео ще не підтягнулися з API.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">ТЗ у роботі</h5>
+                <a href="/tasks/" class="btn btn-sm btn-outline-primary">Усі ТЗ</a>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for task in active_tasks %}
+                <li class="list-group-item p-3">
+                    <div class="d-flex justify-content-between">
+                        <h6 class="mb-1 text-truncate" style="max-width: 200px;">{{ task.title }}</h6>
+                        <span class="badge bg-info text-dark">{{ task.get_status_display }}</span>
+                    </div>
+                    <small class="text-muted">Дедлайн: {{ task.deadline|date:"d.m.Y" }}</small>
+                </li>
+                {% empty %}
+                <li class="list-group-item text-center text-muted py-4">Немає активних завдань.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

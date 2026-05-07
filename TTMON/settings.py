@@ -122,7 +122,7 @@ STATICFILES_DIRS = [
 ]
 
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/analytics/'
 LOGOUT_REDIRECT_URL = 'login'
 
 MEDIA_URL = '/media/'
